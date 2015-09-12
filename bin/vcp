@@ -1,0 +1,224 @@
+#!/usr/bin/python
+# PYTHON_ARGCOMPLETE_OK
+
+import argparse
+import argcomplete
+import os
+import json
+import inspect
+import sys
+import logging
+
+from vcp import VCP
+from vcp.exceptions import ProjectException, RepositoryException
+from vcp.colors import Colors
+from vcp.tools import JsonEncoder
+from vcp.cli_arguments_tree_parser import CLIArgumentsTreeParser
+
+class ColoredFormatter(logging.Formatter):
+    def format(self, record):
+        colors = {
+            logging.ERROR: Colors.red,
+            logging.WARNING: Colors.yellow,
+            logging.INFO: Colors.default,
+        }
+
+        return colors.get(record.levelno, Colors.default) + record.getMessage() + Colors.default
+
+logger_handler = logging.StreamHandler(sys.stdout)
+logger_handler.setFormatter(ColoredFormatter())
+logging.root.addHandler(logger_handler)
+logging.root.setLevel(logging.INFO)
+logging.raiseExceptions = True
+
+logger = logging.getLogger('vcp')
+
+config_file = os.path.join(os.path.expanduser("~"), '.vcp')
+config = {}
+
+if os.path.isfile(config_file):
+    try:
+        with open(config_file) as f:
+            config = json.load(f)
+    except Exception as e:
+        logger.error("Cannot parse config file:")
+        logger.exception(e)
+
+vcp = VCP(config)
+
+project_names = vcp.projects.keys()
+repository_names = vcp.repositories.keys()
+
+project_mod_subcommands = []
+
+for name in vcp.projects:
+    project = vcp.projects[name]
+    appendable_repos = list(set(repository_names) - set(project.repositories))
+    project_mod_subcommands.append(
+        dict(
+            name = name,
+            desc = dict(),
+            subcommands = [
+                dict(
+                    name = 'repository',
+                    desc = dict(),
+                    subcommands = [
+                        dict(
+                            name = 'add',
+                            desc = dict(help = 'Add repo'),
+                            arguments = [
+                                dict(arg_name = 'names', help = 'repo names', nargs = '*', choices = appendable_repos),
+                            ]
+                        ),
+                        dict(
+                            name = 'remove',
+                            desc = dict(help = 'Remove repo'),
+                            arguments = [
+                                dict(arg_name = 'names', help = 'repo names', nargs = '*', choices = project.repositories),
+                            ]
+                        ),
+                        dict(
+                            name = 'clear',
+                            desc = dict(help = 'Remove all repo from project'),
+                        ),
+                    ],
+                ),
+                dict(
+                    name = 'description',
+                    desc = dict(help = 'Set project description'),
+                    arguments = [
+                        dict(arg_name = 'data'),
+                    ]
+                ),
+            ],
+        )
+    )
+
+args_config = [
+    dict(
+        name = 'status',
+        desc = dict(help = 'Project status'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+        ]
+    ),
+    dict(
+        name = 'cmd',
+        desc = dict(help = 'Execute a command on a project (all repos)'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+            dict(arg_name = 'command', help = 'command and params'),
+        ]
+    ),
+    dict(
+        name = 'untracked',
+        desc = dict(help = 'Untracked files'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+        ]
+    ),
+    dict(
+        name = 'dirty',
+        desc = dict(help = 'Dirty files (list of untracked or modified files)'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+        ]
+    ),
+    dict(
+        name = 'project',
+        desc = dict(help = 'Project manager commands'),
+        subcommands = [
+            dict(
+                name = 'create',
+                desc = dict(help = 'Create project'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'project name'),
+                    dict(arg_name = '--description', default = '', help = 'project description'),
+                    dict(arg_name = '--repositories', nargs = '*', choices = repository_names, default = [], help = 'project repos'),
+                ]
+            ),
+            dict(
+                name = 'remove',
+                desc = dict(help = 'Remove project'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'project name', choices = project_names),
+                ]
+            ),
+            dict(
+                name = 'show',
+                desc = dict(help = 'Remove project'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'project name', choices = project_names),
+                ]
+            ),
+            dict(
+                name = 'list',
+                desc = dict(help = 'List of projects'),
+            ),
+            dict(
+                name = 'modify',
+                desc = dict(help = 'Modify project'),
+                subcommands = project_mod_subcommands,
+            ),
+        ]
+    ),
+    dict(
+        name = 'repository',
+        desc = dict(help = 'Repository manager commands'),
+        subcommands = [
+            dict(
+                name = 'create',
+                desc = dict(help = 'Create repository'),
+                arguments = [
+                    dict(arg_name = 'path', help = 'Repository path'),
+                    dict(arg_name = '--name', help = 'Repository name. Default: repo dir name', default = None),
+                    dict(arg_name = '--type', help = 'Repository type', choices = ['git'], default = 'git'),
+                    dict(arg_name = '--add-to', help = 'add to projects', choices = project_names, nargs = '*'),
+                ]
+            ),
+            dict(
+                name = 'cmd',
+                desc = dict(help = 'Execute a command on a repository'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'repository name', choices = repository_names),
+                    dict(arg_name = 'command', help = 'command and params'),
+                ]
+            ),
+            dict(
+                name = 'remove',
+                desc = dict(help = 'Remove repository'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'repository name', choices = repository_names),
+                ]
+            ),
+            dict(
+                name = 'list',
+                desc = dict(help = 'List of repositories'),
+            ),
+        ]
+    ),
+]
+
+parser = CLIArgumentsTreeParser(args_config, 'vcp', argparse.ArgumentParser())
+parser.build()
+argcomplete.autocomplete(parser.parser, exclude = ['-h', '--help'])
+data = parser.parse()
+
+def fetch(arg_data, handler):
+    if 'sub' in arg_data:
+        fetch(arg_data['sub'], getattr(handler, arg_data.name)())
+    elif 'args' in arg_data:
+        getattr(handler, arg_data.name)(**arg_data['args'])
+    else:
+        getattr(handler, arg_data.name)()
+
+try:
+    fetch(data['sub'], vcp)
+
+    config = vcp.get_data()
+
+    with open(config_file, 'w+') as f:
+        f.write(JsonEncoder().encode(config))
+
+except Exception as e:
+    raise
