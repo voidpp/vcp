@@ -1,6 +1,5 @@
 
 import subprocess
-import pexpect
 from .repository import Repository
 
 class GitRepository(Repository):
