@@ -13,7 +13,7 @@ Limitations
 
 Usage examples
 -
-```
+```bash
 # create a project
 vcp project create webstuff1
 # "create" repositories (you can use relative path too)
