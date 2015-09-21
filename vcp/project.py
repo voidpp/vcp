@@ -10,6 +10,13 @@ class Project(object):
         self.repositories = repositories
         self.db = None
 
+    def pushables(self, remote):
+        for name in self.repositories:
+            repo = self.db.repositories[name]
+            commits = repo.pushables(remote)
+            if len(commits):
+                yield Box(repo.name, "\n".join(commits))
+
     def untracked(self):
         for name in self.repositories:
             repo = self.db.repositories[name]
@@ -23,6 +30,13 @@ class Project(object):
             files = repo.get_dirty_files()
             if len(files):
                 yield Box(repo.name, "\n".join(files))
+
+    def fetch(self):
+        for name in self.repositories:
+            repo = self.db.repositories[name]
+            res = repo.fetch()
+            if len(res):
+                yield Box(repo.name, res)
 
     def status(self):
         for name in self.repositories:

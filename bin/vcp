@@ -125,6 +125,21 @@ args_config = [
         ]
     ),
     dict(
+        name = 'pushables',
+        desc = dict(help = 'Show all unpushed local commits'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+            dict(arg_name = '--remote', help = 'remote name', default = 'origin/master')
+        ]
+    ),
+    dict(
+        name = 'fetch',
+        desc = dict(help = 'Fetch repositories'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+        ]
+    ),
+    dict(
         name = 'project',
         desc = dict(help = 'Project manager commands'),
         subcommands = [

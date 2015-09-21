@@ -29,6 +29,14 @@ class Repository(object):
         return os.read(master, num_bytes_readable(master))
 
     @abstractmethod
+    def fetch(self):
+        pass
+
+    @abstractmethod
+    def pushables(self, remote):
+        pass
+
+    @abstractmethod
     def status(self):
         pass
 

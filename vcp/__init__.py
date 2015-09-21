@@ -162,6 +162,12 @@ class VCP(object):
             for name in config['repositories']:
                 self.repositories[name] = self.repo_factory.create(**config['repositories'][name])
 
+    def pushables(self, name, remote):
+        project = self.projects[name]
+
+        for box in project.pushables(remote):
+            logger.info(self.box_renderer.render(box))
+
     def untracked(self, name):
         project = self.projects[name]
 
@@ -178,6 +184,12 @@ class VCP(object):
         project = self.projects[name]
 
         for box in project.cmd(command):
+            logger.info(self.box_renderer.render(box))
+
+    def fetch(self, name):
+        project = self.projects[name]
+
+        for box in project.fetch():
             logger.info(self.box_renderer.render(box))
 
     def status(self, name):
