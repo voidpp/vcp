@@ -140,6 +140,14 @@ args_config = [
         ]
     ),
     dict(
+        name = 'news',
+        desc = dict(help = 'Project news'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+            dict(arg_name = ['--fromcache', '-c'], help = 'does not do fetch before the check', action = 'store_true'),
+        ]
+    ),
+    dict(
         name = 'project',
         desc = dict(help = 'Project manager commands'),
         subcommands = [

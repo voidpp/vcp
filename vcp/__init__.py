@@ -162,6 +162,12 @@ class VCP(object):
             for name in config['repositories']:
                 self.repositories[name] = self.repo_factory.create(**config['repositories'][name])
 
+    def news(self, name, fromcache):
+        project = self.projects[name]
+
+        for box in project.news(fromcache):
+            logger.info(self.box_renderer.render(box))
+
     def pushables(self, name, remote):
         project = self.projects[name]
 

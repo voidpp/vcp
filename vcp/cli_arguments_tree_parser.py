@@ -27,7 +27,10 @@ class CLIArgumentsTreeParser(object):
                 for arg in item['arguments']:
                     name = arg['arg_name']
                     del arg['arg_name']
-                    subparser.add_argument(name, **arg)
+                    if isinstance(name, list):
+                        subparser.add_argument(*name, **arg)
+                    else:
+                        subparser.add_argument(name, **arg)
 
             if 'subcommands' in item:
                 self.__build(subparser, item['subcommands'], item['name'])

@@ -10,6 +10,15 @@ class Project(object):
         self.repositories = repositories
         self.db = None
 
+    def news(self, fromcache):
+        for name in self.repositories:
+            repo = self.db.repositories[name]
+            if not fromcache:
+                repo.fetch()
+            commits = repo.get_new_commits()
+            if len(commits):
+                yield Box(repo.name, "\n".join(commits))
+
     def pushables(self, remote):
         for name in self.repositories:
             repo = self.db.repositories[name]

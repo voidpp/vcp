@@ -21,6 +21,9 @@ class Repository(object):
         self.path = path
         self.name = name
 
+    def list_cmd(self, command):
+        return self.cmd(command).split("\n")[:-1]
+
     def cmd(self, command):
         # pty for colored output
         master, slave = pty.openpty()
