@@ -19,6 +19,13 @@ class Project(object):
             if len(commits):
                 yield Box(repo.name, "\n".join(commits))
 
+    def diff(self):
+        for name in self.repositories:
+            repo = self.db.repositories[name]
+            diff = repo.diff()
+            if len(diff):
+                yield Box(repo.name, diff)
+
     def pushables(self, remote):
         for name in self.repositories:
             repo = self.db.repositories[name]

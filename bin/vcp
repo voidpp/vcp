@@ -148,6 +148,13 @@ args_config = [
         ]
     ),
     dict(
+        name = 'diff',
+        desc = dict(help = 'Project news'),
+        arguments = [
+            dict(arg_name = 'name', help = 'project name', choices = project_names),
+        ]
+    ),
+    dict(
         name = 'project',
         desc = dict(help = 'Project manager commands'),
         subcommands = [

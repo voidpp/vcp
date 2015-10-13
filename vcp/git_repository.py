@@ -5,6 +5,9 @@ from .repository import Repository
 class GitRepository(Repository):
     type = 'git'
 
+    def diff(self):
+        return self.cmd("git --no-pager diff")
+
     def pushables(self, remote):
         return self.list_cmd("git --no-pager log --oneline %s..HEAD" % remote)
 

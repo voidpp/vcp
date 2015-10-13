@@ -168,6 +168,11 @@ class VCP(object):
         for box in project.news(fromcache):
             logger.info(self.box_renderer.render(box))
 
+    def diff(self, name):
+        project = self.projects[name]
+        for box in project.diff():
+            logger.info(self.box_renderer.render(box))
+
     def pushables(self, name, remote):
         project = self.projects[name]
 

@@ -32,6 +32,10 @@ class Repository(object):
         return os.read(master, num_bytes_readable(master))
 
     @abstractmethod
+    def diff(self):
+        pass
+
+    @abstractmethod
     def fetch(self):
         pass
 
