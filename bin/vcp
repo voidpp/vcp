@@ -136,7 +136,7 @@ project_commands = [
     ),
     dict(
         name = 'diff',
-        desc = dict(help = 'Project news'),
+        desc = dict(help = 'Show diff in all repositories'),
     ),
 ]
 
