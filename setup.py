@@ -13,6 +13,7 @@ setup(
     install_requires = [
         "prettytable==0.7.2",
         "argcomplete==1.0.0",
+        "voidpp-tools>=1.1.1"
     ],
     packages = find_packages(),
     scripts = [

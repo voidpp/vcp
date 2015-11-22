@@ -60,11 +60,19 @@ class ProjectCommand(object):
     def __init__(self, vcp):
         self.vcp = vcp
 
-    def create(self, name, description, repositories):
+    def create(self, name, description, repositories, default = False):
         if name in self.vcp.projects:
             raise ProjectException("Project '%s' is already exists" % name)
         self.vcp.projects[name] = Project(name, description, repositories)
+
+        if default:
+            self.vcp.default_project = name
+
         logger.info("Project '%s' created" % name)
+
+    def default(self, name):
+        self.vcp.default_project = name
+        logger.info("Project '%s' set for default project" % name)
 
     def remove(self, name):
         del self.vcp.projects[name]
@@ -147,6 +155,7 @@ class VCP(object):
 
     def __init__(self, config):
         self.config = config
+        self.default_project = None
         self.projects = {}
         self.repositories = {}
         self.box_renderer = BoxRenderer()
@@ -161,6 +170,9 @@ class VCP(object):
         if 'repositories' in config:
             for name in config['repositories']:
                 self.repositories[name] = self.repo_factory.create(**config['repositories'][name])
+
+        if 'default_project' in config:
+            self.default_project = config['default_project']
 
     def news(self, name, fromcache):
         project = self.projects[name]
@@ -219,4 +231,5 @@ class VCP(object):
         return dict(
             projects = self.projects,
             repositories = self.repositories,
+            default_project = self.default_project,
         )

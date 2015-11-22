@@ -9,10 +9,11 @@ import inspect
 import sys
 import logging
 
+from voidpp_tools.json_encoder import JsonEncoder
+
 from vcp import VCP
 from vcp.exceptions import ProjectException, RepositoryException
 from vcp.colors import Colors
-from vcp.tools import JsonEncoder
 from vcp.cli_arguments_tree_parser import CLIArgumentsTreeParser
 
 class ColoredFormatter(logging.Formatter):
@@ -94,66 +95,52 @@ for name in vcp.projects:
         )
     )
 
-args_config = [
+# NOTE: project name parameter added later!
+project_commands = [
     dict(
         name = 'status',
         desc = dict(help = 'Project status'),
-        arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
-        ]
     ),
     dict(
         name = 'cmd',
         desc = dict(help = 'Execute a command on a project (all repos)'),
         arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
             dict(arg_name = 'command', help = 'command and params'),
         ]
     ),
     dict(
         name = 'untracked',
         desc = dict(help = 'Untracked files'),
-        arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
-        ]
     ),
     dict(
         name = 'dirty',
         desc = dict(help = 'Dirty files (list of untracked or modified files)'),
-        arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
-        ]
     ),
     dict(
         name = 'pushables',
         desc = dict(help = 'Show all unpushed local commits'),
         arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
             dict(arg_name = '--remote', help = 'remote name', default = 'origin/master')
         ]
     ),
     dict(
         name = 'fetch',
         desc = dict(help = 'Fetch repositories'),
-        arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
-        ]
     ),
     dict(
         name = 'news',
         desc = dict(help = 'Project news'),
         arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
             dict(arg_name = ['--fromcache', '-c'], help = 'does not do fetch before the check', action = 'store_true'),
         ]
     ),
     dict(
         name = 'diff',
         desc = dict(help = 'Project news'),
-        arguments = [
-            dict(arg_name = 'name', help = 'project name', choices = project_names),
-        ]
     ),
+]
+
+manager_commands = [
     dict(
         name = 'project',
         desc = dict(help = 'Project manager commands'),
@@ -165,6 +152,7 @@ args_config = [
                     dict(arg_name = 'name', help = 'project name'),
                     dict(arg_name = '--description', default = '', help = 'project description'),
                     dict(arg_name = '--repositories', nargs = '*', choices = repository_names, default = [], help = 'project repos'),
+                    dict(arg_name = '--default', help = 'make this project default', action = 'store_true'),
                 ]
             ),
             dict(
@@ -189,6 +177,13 @@ args_config = [
                 name = 'modify',
                 desc = dict(help = 'Modify project'),
                 subcommands = project_mod_subcommands,
+            ),
+            dict(
+                name = 'default',
+                desc = dict(help = 'Set project for default. If default project is specified, the \'project\' parameter in the generic commands is optional'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'project name', choices = project_names),
+                ]
             ),
         ]
     ),
@@ -229,7 +224,16 @@ args_config = [
     ),
 ]
 
-parser = CLIArgumentsTreeParser(args_config, 'vcp', argparse.ArgumentParser())
+# add project name parameter for project_commands
+for command in project_commands:
+    project_param = dict(arg_name = 'name', help = 'project name', choices = project_names)
+    if vcp.default_project is not None and vcp.default_project in project_names:
+        project_param.update(nargs = '?', default = vcp.default_project)
+    if 'arguments' not in command:
+        command['arguments'] = []
+    command['arguments'].insert(0, project_param)
+
+parser = CLIArgumentsTreeParser(project_commands + manager_commands, 'vcp', argparse.ArgumentParser())
 parser.build()
 argcomplete.autocomplete(parser.parser, exclude = ['-h', '--help'])
 data = parser.parse()
