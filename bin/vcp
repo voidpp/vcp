@@ -222,6 +222,10 @@ manager_commands = [
             ),
         ]
     ),
+    dict(
+        name = 'version',
+        desc = dict(help = 'Show VCP version'),
+    ),
 ]
 
 # add project name parameter for project_commands

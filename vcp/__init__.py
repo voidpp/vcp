@@ -1,5 +1,6 @@
 
 import os
+import pkg_resources
 from prettytable import PrettyTable
 from functools import partial
 from logging import getLogger
@@ -220,6 +221,9 @@ class VCP(object):
 
         for box in project.status():
             logger.info(self.box_renderer.render(box))
+
+    def version(self):
+        logger.info(pkg_resources.get_distribution("vcp").version)
 
     def repository(self):
         return RepositoryCommand(self)
