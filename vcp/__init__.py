@@ -161,6 +161,7 @@ class VCP(object):
         self.repositories = {}
         self.box_renderer = BoxRenderer()
         self.repo_factory = RepositoryFactory()
+        self.command_names = []
 
         if 'projects' in config:
             for name in config['projects']:
@@ -175,52 +176,20 @@ class VCP(object):
         if 'default_project' in config:
             self.default_project = config['default_project']
 
-    def news(self, name, fromcache):
-        project = self.projects[name]
+    def action_commands_lookup(self, project_related_commands):
+        self.command_names = [command['name'] for command in project_related_commands]
 
-        for box in project.news(fromcache):
-            logger.info(self.box_renderer.render(box))
+    # common handler for all project related action commands
+    def __getattr__(self, attr_name):
+        if attr_name not in self.command_names:
+            raise KeyError(attr_name)
 
-    def diff(self, name):
-        project = self.projects[name]
-        for box in project.diff():
-            logger.info(self.box_renderer.render(box))
+        def action(name, **kwargs):
+            project = self.projects[name]
+            for box in getattr(project, attr_name)(**kwargs):
+                logger.info(self.box_renderer.render(box))
 
-    def pushables(self, name, remote):
-        project = self.projects[name]
-
-        for box in project.pushables(remote):
-            logger.info(self.box_renderer.render(box))
-
-    def untracked(self, name):
-        project = self.projects[name]
-
-        for box in project.untracked():
-            logger.info(self.box_renderer.render(box))
-
-    def dirty(self, name):
-        project = self.projects[name]
-
-        for box in project.dirty():
-            logger.info(self.box_renderer.render(box))
-
-    def cmd(self, name, command):
-        project = self.projects[name]
-
-        for box in project.cmd(command):
-            logger.info(self.box_renderer.render(box))
-
-    def fetch(self, name):
-        project = self.projects[name]
-
-        for box in project.fetch():
-            logger.info(self.box_renderer.render(box))
-
-    def status(self, name):
-        project = self.projects[name]
-
-        for box in project.status():
-            logger.info(self.box_renderer.render(box))
+        return action
 
     def version(self):
         logger.info(pkg_resources.get_distribution("vcp").version)

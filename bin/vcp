@@ -96,7 +96,7 @@ for name in vcp.projects:
     )
 
 # NOTE: project name parameter added later!
-project_commands = [
+project_action_commands = [
     dict(
         name = 'status',
         desc = dict(help = 'Project status'),
@@ -228,8 +228,8 @@ manager_commands = [
     ),
 ]
 
-# add project name parameter for project_commands
-for command in project_commands:
+# add project name parameter for project_action_commands
+for command in project_action_commands:
     project_param = dict(arg_name = 'name', help = 'project name', choices = project_names)
     if vcp.default_project is not None and vcp.default_project in project_names:
         project_param.update(nargs = '?', default = vcp.default_project)
@@ -237,7 +237,9 @@ for command in project_commands:
         command['arguments'] = []
     command['arguments'].insert(0, project_param)
 
-parser = CLIArgumentsTreeParser(project_commands + manager_commands, 'vcp', argparse.ArgumentParser())
+vcp.action_commands_lookup(project_action_commands)
+
+parser = CLIArgumentsTreeParser(project_action_commands + manager_commands, 'vcp', argparse.ArgumentParser())
 parser.build()
 argcomplete.autocomplete(parser.parser, exclude = ['-h', '--help'])
 data = parser.parse()
