@@ -185,9 +185,14 @@ class VCP(object):
             raise KeyError(attr_name)
 
         def action(name, **kwargs):
+            list = kwargs['list']
+            del kwargs['list']
             project = self.projects[name]
-            for box in getattr(project, attr_name)(**kwargs):
-                logger.info(self.box_renderer.render(box))
+            if list:
+                logger.info(','.join([box.repository.name for box in getattr(project, attr_name)(**kwargs)]))
+            else:
+                for box in getattr(project, attr_name)(**kwargs):
+                    logger.info(self.box_renderer.render(box))
 
         return action
 

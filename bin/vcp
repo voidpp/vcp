@@ -236,6 +236,7 @@ for command in project_action_commands:
     if 'arguments' not in command:
         command['arguments'] = []
     command['arguments'].insert(0, project_param)
+    command['arguments'].append(dict(arg_name = '--list', help = 'Print only repo names', action = 'store_true'))
 
 vcp.action_commands_lookup(project_action_commands)
 
