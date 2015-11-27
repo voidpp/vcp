@@ -4,6 +4,7 @@ import pkg_resources
 from prettytable import PrettyTable
 from functools import partial
 from logging import getLogger
+from voidpp_tools.json_config import JSONConfigLoader
 
 from .project import Project
 from .box_renderer import BoxRenderer
@@ -70,17 +71,22 @@ class ProjectCommand(object):
             self.vcp.default_project = name
 
         logger.info("Project '%s' created" % name)
+        self.vcp.save_config()
 
     def default(self, name):
         self.vcp.default_project = name
         logger.info("Project '%s' set for default project" % name)
+        self.vcp.save_config()
 
     def remove(self, name):
         del self.vcp.projects[name]
         logger.info("Project '%s' removed" % name)
+        self.vcp.save_config()
 
     def modify(self):
-        return DyanmicProjectModifyCommand(self.vcp)
+        res = DyanmicProjectModifyCommand(self.vcp)
+        self.vcp.save_config()
+        return res
 
     def show(self, name):
         project = self.vcp.projects[name]
@@ -129,6 +135,7 @@ class RepositoryCommand(object):
                 project.repositories.remove(name)
                 logger.info("Repository '%s' removed from project '%s'" % (name, prj_name))
         logger.info("Repository '%s' removed" % name)
+        self.vcp.save_config()
 
     def create(self, path, type, name, add_to = None):
         path = os.path.abspath(path)
@@ -151,11 +158,13 @@ class RepositoryCommand(object):
             msg += " and added to project: " + ', '.join(add_to)
 
         logger.info(msg)
+        self.vcp.save_config()
 
 class VCP(object):
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, config_file_name = '.vcp'):
+        self.config_loader = JSONConfigLoader(__file__)
+        self.config = self.config_loader.load(config_file_name)
         self.default_project = None
         self.projects = {}
         self.repositories = {}
@@ -163,18 +172,18 @@ class VCP(object):
         self.repo_factory = RepositoryFactory()
         self.command_names = []
 
-        if 'projects' in config:
-            for name in config['projects']:
-                project = Project(**config['projects'][name])
+        if 'projects' in self.config:
+            for name in self.config['projects']:
+                project = Project(**self.config['projects'][name])
                 project.db = self
                 self.projects[name] = project
 
-        if 'repositories' in config:
-            for name in config['repositories']:
-                self.repositories[name] = self.repo_factory.create(**config['repositories'][name])
+        if 'repositories' in self.config:
+            for name in self.config['repositories']:
+                self.repositories[name] = self.repo_factory.create(**self.config['repositories'][name])
 
-        if 'default_project' in config:
-            self.default_project = config['default_project']
+        if 'default_project' in self.config:
+            self.default_project = self.config['default_project']
 
     def action_commands_lookup(self, project_related_commands):
         self.command_names = [command['name'] for command in project_related_commands]
@@ -211,3 +220,6 @@ class VCP(object):
             repositories = self.repositories,
             default_project = self.default_project,
         )
+
+    def save_config(self):
+        self.config_loader.save(self.get_data())

@@ -34,18 +34,7 @@ logging.raiseExceptions = True
 
 logger = logging.getLogger('vcp')
 
-config_file = os.path.join(os.path.expanduser("~"), '.vcp')
-config = {}
-
-if os.path.isfile(config_file):
-    try:
-        with open(config_file) as f:
-            config = json.load(f)
-    except Exception as e:
-        logger.error("Cannot parse config file:")
-        logger.exception(e)
-
-vcp = VCP(config)
+vcp = VCP()
 
 project_names = vcp.projects.keys()
 repository_names = vcp.repositories.keys()
@@ -255,11 +244,5 @@ def fetch(arg_data, handler):
 
 try:
     fetch(data['sub'], vcp)
-
-    config = vcp.get_data()
-
-    with open(config_file, 'w+') as f:
-        f.write(JsonEncoder().encode(config))
-
 except Exception as e:
     raise
