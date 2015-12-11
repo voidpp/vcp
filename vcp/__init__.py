@@ -22,31 +22,37 @@ class RepositoryFactory(object):
         return self.types[type](path, name)
 
 class ProjectModifyRepositoryCommand(object):
-    def __init__(self, project):
+    def __init__(self, project, vcp):
         self.project = project
+        self.vcp = vcp
 
     def add(self, names):
         self.project.repositories += list(set(names))
         logger.info("Repo added to project '%s'" % self.project.name)
+        self.vcp.save_config()
 
     def clear(self):
         self.project.repositories = []
         logger.info("Repositories cleared from project '%s'" % self.project.name)
+        self.vcp.save_config()
 
     def remove(self, names):
         self.project.repositories = list(set(self.project.repositories) - set(names))
         logger.info("Repo removed from project '%s'" % self.project.name)
+        self.vcp.save_config()
 
 class ProjectModifyCommand(object):
-    def __init__(self, project):
+    def __init__(self, project, vcp):
         self.project = project
+        self.vcp = vcp
 
     def repository(self):
-        return ProjectModifyRepositoryCommand(self.project)
+        return ProjectModifyRepositoryCommand(self.project, self.vcp)
 
     def description(self, data):
         self.project.description = data
         logger.info("Description modified")
+        self.vcp.save_config()
 
 class DyanmicProjectModifyCommand(object):
     def __init__(self, vcp):
@@ -56,7 +62,7 @@ class DyanmicProjectModifyCommand(object):
         return name in self.vcp.projects
 
     def __getattr__(self, name):
-        return partial(ProjectModifyCommand, self.vcp.projects[name])
+        return partial(ProjectModifyCommand, self.vcp.projects[name], self.vcp)
 
 class ProjectCommand(object):
     def __init__(self, vcp):
@@ -84,9 +90,7 @@ class ProjectCommand(object):
         self.vcp.save_config()
 
     def modify(self):
-        res = DyanmicProjectModifyCommand(self.vcp)
-        self.vcp.save_config()
-        return res
+        return DyanmicProjectModifyCommand(self.vcp)
 
     def show(self, name):
         project = self.vcp.projects[name]
@@ -223,3 +227,4 @@ class VCP(object):
 
     def save_config(self):
         self.config_loader.save(self.get_data())
+        logger.info("Config saved")
