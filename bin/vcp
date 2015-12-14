@@ -8,6 +8,7 @@ import json
 import inspect
 import sys
 import logging
+from datetime import datetime
 
 from voidpp_tools.json_encoder import JsonEncoder
 
@@ -22,14 +23,22 @@ class ColoredFormatter(logging.Formatter):
             logging.ERROR: Colors.red,
             logging.WARNING: Colors.yellow,
             logging.INFO: Colors.default,
+            logging.DEBUG: Colors.cyan
         }
 
-        return colors.get(record.levelno, Colors.default) + record.getMessage() + Colors.default
+        if record.levelno == logging.DEBUG:
+            msg = '%s - %s:%s: ' % (datetime.now(), record.name, record.lineno)
+            msg += Colors.default + record.getMessage()
+        else:
+            msg = record.getMessage()
+
+        return colors.get(record.levelno, Colors.default) + msg + Colors.default
 
 logger_handler = logging.StreamHandler(sys.stdout)
 logger_handler.setFormatter(ColoredFormatter())
 logging.root.addHandler(logger_handler)
-logging.root.setLevel(logging.INFO)
+# the generic argument parser is not ready at this time, but logging info must be set here
+logging.root.setLevel(logging.DEBUG if '--debug' in sys.argv else logging.INFO)
 logging.raiseExceptions = True
 
 logger = logging.getLogger('vcp')
@@ -232,7 +241,13 @@ vcp.action_commands_lookup(project_action_commands)
 parser = CLIArgumentsTreeParser(project_action_commands + manager_commands, 'vcp', argparse.ArgumentParser())
 parser.build()
 argcomplete.autocomplete(parser.parser, exclude = ['-h', '--help'])
+parser.parser.add_argument('--debug', action = 'store_true')
 data = parser.parse()
+
+debug = data['sub']['args']['debug']
+del data['sub']['args']['debug']
+
+logger.debug("Parsed command line data: %s" %  data)
 
 def fetch(arg_data, handler):
     if 'sub' in arg_data:

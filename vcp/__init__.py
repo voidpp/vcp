@@ -169,6 +169,7 @@ class VCP(object):
     def __init__(self, config_file_name = '.vcp'):
         self.config_loader = JSONConfigLoader(__file__)
         self.config = self.config_loader.load(config_file_name)
+        logger.debug("Config loaded successfully from '%s'" % self.config_loader.filename)
         self.default_project = None
         self.projects = {}
         self.repositories = {}
@@ -188,6 +189,8 @@ class VCP(object):
 
         if 'default_project' in self.config:
             self.default_project = self.config['default_project']
+
+        logger.debug("The config contains %d projects and %d repositories." % (len(self.projects), len(self.repositories)))
 
     def action_commands_lookup(self, project_related_commands):
         self.command_names = [command['name'] for command in project_related_commands]
@@ -227,4 +230,4 @@ class VCP(object):
 
     def save_config(self):
         self.config_loader.save(self.get_data())
-        logger.info("Config saved")
+        logger.debug("Config saved to '%s'" % self.config_loader.filename)

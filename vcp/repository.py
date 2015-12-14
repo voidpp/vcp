@@ -4,6 +4,9 @@ import pty
 from subprocess import Popen, PIPE
 from abc import ABCMeta, abstractmethod
 
+import logging
+logger = logging.getLogger(__name__)
+
 def num_bytes_readable(fd):
     import array
     import fcntl
@@ -28,6 +31,7 @@ class Repository(object):
         # pty for colored output
         master, slave = pty.openpty()
         p = Popen(command, cwd = self.path, shell = True, stdout = slave, stderr = slave)
+        logger.debug("Execute command: '%s' in '%s'" % (command, self.path))
         p.communicate()
         return os.read(master, num_bytes_readable(master))
 
