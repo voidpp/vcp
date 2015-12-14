@@ -4,7 +4,7 @@ import subprocess
 
 setup(
     name = "vcp",
-    version = "1.4.3",
+    version = "1.5.0",
     description = "Version Control Projects - organize repositories",
     author = 'Lajos Santa',
     author_email = 'santa.lajos@coldline.hu',
@@ -13,7 +13,7 @@ setup(
     install_requires = [
         "prettytable==0.7.2",
         "argcomplete==1.0.0",
-        "voidpp-tools>=1.3.0"
+        "voidpp-tools>=1.4.0",
     ],
     packages = find_packages(),
     scripts = [

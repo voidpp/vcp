@@ -226,11 +226,23 @@ manager_commands = [
     ),
 ]
 
+# refactor this "if-else" to a cycle if there is a 3rd source
+if 'VCP_DEFAULT_PROJECT' in os.environ:
+    default_project  = os.environ.get('VCP_DEFAULT_PROJECT', None)
+    logger.debug("Default project set to '%s' by environment" % default_project)
+else:
+    default_project = vcp.default_project
+    logger.debug("Default project set to '%s' by config" % default_project)
+
+if default_project not in project_names:
+    logger.warning("Default project '%s' is unknown! Ignored." % default_project)
+    default_project = None
+
 # add project name parameter for project_action_commands
 for command in project_action_commands:
     project_param = dict(arg_name = 'name', help = 'project name', choices = project_names)
-    if vcp.default_project is not None and vcp.default_project in project_names:
-        project_param.update(nargs = '?', default = vcp.default_project)
+    if default_project:
+        project_param.update(nargs = '?', default = default_project)
     if 'arguments' not in command:
         command['arguments'] = []
     command['arguments'].insert(0, project_param)
