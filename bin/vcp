@@ -256,10 +256,15 @@ argcomplete.autocomplete(parser.parser, exclude = ['-h', '--help'])
 parser.parser.add_argument('--debug', action = 'store_true')
 data = parser.parse()
 
-debug = data['sub']['args']['debug']
-del data['sub']['args']['debug']
-
 logger.debug("Parsed command line data: %s" %  data)
+
+def search_and_remove_debug_flag(data):
+    if 'sub' in data:
+        search_and_remove_debug_flag(data['sub'])
+    if 'args' in data and 'debug' in data['args']:
+        del data['args']['debug']
+
+search_and_remove_debug_flag(data)
 
 def fetch(arg_data, handler):
     if 'sub' in arg_data:
