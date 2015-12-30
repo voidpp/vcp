@@ -1,10 +1,14 @@
 
 from colors import Colors
 
+from voidpp_tools.terminal import get_size
+
 class BoxRenderer(object):
-    def __init__(self, width = 100, decor = "-"):
-        self.width = width
-        self.decor = decor
+    def __init__(self, config):
+        self.width = config['width']
+        self.decor = config['decorator']
+        if self.width == -1:
+            self.width = get_size()['cols']
 
     def render(self, box):
         padding = 10

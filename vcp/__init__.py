@@ -164,6 +164,33 @@ class RepositoryCommand(object):
         logger.info(msg)
         self.vcp.save_config()
 
+class _VCPConfigParser(object):
+    def parse(self, data, vcp):
+        for name in data:
+            func = 'process_%s' % name
+            if not hasattr(self, func):
+                logger.warning("Unknown config node: '%s'" % name)
+                continue
+            attr = getattr(self, func)
+            logger.debug("Process config node: '%s'" % name)
+            attr(data[name], vcp)
+
+    def process_projects(self, config, vcp):
+        for name in config:
+            project = Project(**config[name])
+            project.db = vcp
+            vcp.projects[name] = project
+
+    def process_repositories(self, config, vcp):
+        for name in config:
+            vcp.repositories[name] = vcp.repo_factory.create(**config[name])
+
+    def process_default_project(self, config, vcp):
+        vcp.default_project = config
+
+    def process_output_format(self, config, vcp):
+        vcp.output_format = config
+
 class VCP(object):
 
     def __init__(self, config_file_name = '.vcp'):
@@ -173,24 +200,22 @@ class VCP(object):
         self.default_project = None
         self.projects = {}
         self.repositories = {}
-        self.box_renderer = BoxRenderer()
         self.repo_factory = RepositoryFactory()
         self.command_names = []
+        self.output_format = dict(
+            header = dict(
+                show_repo_path = False,
+                width = 100,
+                decorator = '-',
+            ),
+        )
 
-        if 'projects' in self.config:
-            for name in self.config['projects']:
-                project = Project(**self.config['projects'][name])
-                project.db = self
-                self.projects[name] = project
+        parser = _VCPConfigParser()
+        parser.parse(self.config, self)
 
-        if 'repositories' in self.config:
-            for name in self.config['repositories']:
-                self.repositories[name] = self.repo_factory.create(**self.config['repositories'][name])
+        self.box_renderer = BoxRenderer(self.output_format['header'])
 
-        if 'default_project' in self.config:
-            self.default_project = self.config['default_project']
-
-        logger.debug("The config contains %d projects and %d repositories." % (len(self.projects), len(self.repositories)))
+        logger.debug("Config parsed. Projects: %d, repositories %d." % (len(self.projects), len(self.repositories)))
 
     def action_commands_lookup(self, project_related_commands):
         self.command_names = [command['name'] for command in project_related_commands]
@@ -208,6 +233,7 @@ class VCP(object):
                 logger.info(','.join([box.repository.name for box in getattr(project, attr_name)(**kwargs)]))
             else:
                 for box in getattr(project, attr_name)(**kwargs):
+                    box.reconfig(self.output_format['header'])
                     logger.info(self.box_renderer.render(box))
 
         return action
@@ -226,6 +252,7 @@ class VCP(object):
             projects = self.projects,
             repositories = self.repositories,
             default_project = self.default_project,
+            output_format = self.output_format,
         )
 
     def save_config(self):
