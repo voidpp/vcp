@@ -120,6 +120,9 @@ class RepositoryCommand(object):
     def cmd(self, name, command):
         logger.info(self.vcp.repositories[name].cmd(command))
 
+    def show_path(self, name):
+        logger.info(self.vcp.repositories[name].path)
+
     def list(self):
         logger.info("Known repositories")
 

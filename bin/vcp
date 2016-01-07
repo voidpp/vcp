@@ -220,6 +220,13 @@ manager_commands = [
                 name = 'list',
                 desc = dict(help = 'List of repositories'),
             ),
+            dict(
+                name = 'show_path',
+                desc = dict(help = 'Show path repository'),
+                arguments = [
+                    dict(arg_name = 'name', help = 'repository name', choices = repository_names),
+                ],
+            ),
         ]
     ),
     dict(
