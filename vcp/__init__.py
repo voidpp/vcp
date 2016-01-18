@@ -4,7 +4,6 @@ import pkg_resources
 from prettytable import PrettyTable
 from functools import partial
 from logging import getLogger
-from voidpp_tools.json_config import JSONConfigLoader
 
 from .project import Project
 from .box_renderer import BoxRenderer
@@ -193,8 +192,8 @@ class _VCPConfigParser(object):
 
 class VCP(object):
 
-    def __init__(self, config_file_name = '.vcp'):
-        self.config_loader = JSONConfigLoader(__file__)
+    def __init__(self, config_loader, config_file_name = '.vcp'):
+        self.config_loader = config_loader
         self.config = self.config_loader.load(config_file_name)
         logger.debug("Config loaded successfully from '%s'" % self.config_loader.filename)
         self.default_project = None

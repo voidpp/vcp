@@ -11,7 +11,9 @@ import logging
 from datetime import datetime
 
 from voidpp_tools.json_encoder import JsonEncoder
+from voidpp_tools.json_config import JSONConfigLoader
 
+import vcp
 from vcp import VCP
 from vcp.exceptions import ProjectException, RepositoryException
 from vcp.colors import Colors
@@ -43,7 +45,7 @@ logging.raiseExceptions = True
 
 logger = logging.getLogger('vcp')
 
-vcp = VCP()
+vcp = VCP(JSONConfigLoader(vcp.__file__))
 
 project_names = vcp.projects.keys()
 repository_names = vcp.repositories.keys()
