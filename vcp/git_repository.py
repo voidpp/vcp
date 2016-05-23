@@ -20,6 +20,9 @@ class GitRepository(Repository):
     def status(self):
         return self.cmd("git status")
 
+    def reset(self):
+        return self.cmd("git reset --hard origin/master")
+
     def get_dirty_files(self):
         files = []
         for file in self.list_cmd("git status --short"):

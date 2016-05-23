@@ -138,6 +138,10 @@ project_action_commands = [
         name = 'diff',
         desc = dict(help = 'Show diff in all repositories'),
     ),
+    dict(
+        name = 'reset',
+        desc = dict(help = 'Delete all local commits. Warning: BIOHAZARD! Cannot be reverted if reflog is off!'),
+    ),
 ]
 
 manager_commands = [

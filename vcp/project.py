@@ -59,6 +59,11 @@ class Project(object):
             repo = self.db.repositories[name]
             yield RepositoryCommandResultBox(repo, repo.status())
 
+    def reset(self):
+        for name in self.repositories:
+            repo = self.db.repositories[name]
+            yield RepositoryCommandResultBox(repo, repo.reset())
+
     def cmd(self, command):
         for repo_name in self.repositories:
             repo = self.db.repositories[repo_name]
