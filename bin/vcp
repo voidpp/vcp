@@ -8,265 +8,75 @@ import json
 import inspect
 import sys
 import logging
-from datetime import datetime
+import logging.handlers
+from datetime import datetime, timedelta
 
 from voidpp_tools.json_encoder import JsonEncoder
 from voidpp_tools.json_config import JSONConfigLoader
 
+script_start = datetime.now()
+
 import vcp
-from vcp import VCP
+from vcp import VCP, CONFIG_FILE_NAME
 from vcp.exceptions import ProjectException, RepositoryException
-from vcp.colors import Colors
 from vcp.cli_arguments_tree_parser import CLIArgumentsTreeParser
+from vcp.project_handler_base import ProjectHandlerFactory
+import vcp.project_handlers # NOQA (the project handlers must be registered the factory)
+from vcp.tools import ColoredFormatter
 
-class ColoredFormatter(logging.Formatter):
-    def format(self, record):
-        colors = {
-            logging.ERROR: Colors.red,
-            logging.WARNING: Colors.yellow,
-            logging.INFO: Colors.default,
-            logging.DEBUG: Colors.cyan
-        }
-
-        if record.levelno == logging.DEBUG:
-            msg = '%s - %s:%s: ' % (datetime.now(), record.name, record.lineno)
-            msg += Colors.default + record.getMessage()
-        else:
-            msg = record.getMessage()
-
-        return colors.get(record.levelno, Colors.default) + msg + Colors.default
-
-logger_handler = logging.StreamHandler(sys.stdout)
-logger_handler.setFormatter(ColoredFormatter())
-logging.root.addHandler(logger_handler)
 # the generic argument parser is not ready at this time, but logging info must be set here
-logging.root.setLevel(logging.DEBUG if '--debug' in sys.argv else logging.INFO)
-logging.raiseExceptions = True
+debug_mode = '--debug' in sys.argv
 
+# initialize logger
 logger = logging.getLogger('vcp')
+logger.setLevel(logging.DEBUG)
 
-vcp = VCP(JSONConfigLoader(vcp.__file__))
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(ColoredFormatter(debug_mode))
+console_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
+logger.addHandler(console_handler)
 
-project_names = vcp.projects.keys()
-repository_names = vcp.repositories.keys()
+config_loader = JSONConfigLoader(vcp.__file__)
 
-project_mod_subcommands = []
+config_loader.load(CONFIG_FILE_NAME)
 
-for name in vcp.projects:
-    project = vcp.projects[name]
-    appendable_repos = list(set(repository_names) - set(project.repositories))
-    project_mod_subcommands.append(
-        dict(
-            name = name,
-            desc = dict(),
-            subcommands = [
-                dict(
-                    name = 'repository',
-                    desc = dict(),
-                    subcommands = [
-                        dict(
-                            name = 'add',
-                            desc = dict(help = 'Add repo'),
-                            arguments = [
-                                dict(arg_name = 'names', help = 'repo names', nargs = '*', choices = appendable_repos),
-                            ]
-                        ),
-                        dict(
-                            name = 'remove',
-                            desc = dict(help = 'Remove repo'),
-                            arguments = [
-                                dict(arg_name = 'names', help = 'repo names', nargs = '*', choices = project.repositories),
-                            ]
-                        ),
-                        dict(
-                            name = 'clear',
-                            desc = dict(help = 'Remove all repo from project'),
-                        ),
-                    ],
-                ),
-                dict(
-                    name = 'description',
-                    desc = dict(help = 'Set project description'),
-                    arguments = [
-                        dict(arg_name = 'data'),
-                    ]
-                ),
-            ],
-        )
-    )
+config_dir = os.path.dirname(config_loader.filename)
 
-# NOTE: project name parameter added later!
-project_action_commands = [
-    dict(
-        name = 'status',
-        desc = dict(help = 'Project status'),
-    ),
-    dict(
-        name = 'cmd',
-        desc = dict(help = 'Execute a command on a project (all repos)'),
-        arguments = [
-            dict(arg_name = 'command', help = 'command and params'),
-        ]
-    ),
-    dict(
-        name = 'untracked',
-        desc = dict(help = 'Untracked files'),
-    ),
-    dict(
-        name = 'dirty',
-        desc = dict(help = 'Dirty files (list of untracked or modified files)'),
-    ),
-    dict(
-        name = 'pushables',
-        desc = dict(help = 'Show all unpushed local commits'),
-        arguments = [
-            dict(arg_name = '--remote', help = 'remote name', default = 'origin/master')
-        ]
-    ),
-    dict(
-        name = 'fetch',
-        desc = dict(help = 'Fetch repositories'),
-    ),
-    dict(
-        name = 'news',
-        desc = dict(help = 'Project news'),
-        arguments = [
-            dict(arg_name = ['--fromcache', '-c'], help = 'does not do fetch before the check', action = 'store_true'),
-        ]
-    ),
-    dict(
-        name = 'diff',
-        desc = dict(help = 'Show diff in all repositories'),
-    ),
-    dict(
-        name = 'reset',
-        desc = dict(help = 'Delete all local commits. Warning: BIOHAZARD! Cannot be reverted if reflog is off!'),
-    ),
-]
+log_file = os.path.join(config_dir, '.vcp.log')
+file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes = 1024*1024, backupCount = 5)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(name)s: %(message)s"))
+logger.addHandler(file_handler)
 
-manager_commands = [
-    dict(
-        name = 'project',
-        desc = dict(help = 'Project manager commands'),
-        subcommands = [
-            dict(
-                name = 'create',
-                desc = dict(help = 'Create project'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'project name'),
-                    dict(arg_name = '--description', default = '', help = 'project description'),
-                    dict(arg_name = '--repositories', nargs = '*', choices = repository_names, default = [], help = 'project repos'),
-                    dict(arg_name = '--default', help = 'make this project default', action = 'store_true'),
-                ]
-            ),
-            dict(
-                name = 'remove',
-                desc = dict(help = 'Remove project'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'project name', choices = project_names),
-                ]
-            ),
-            dict(
-                name = 'show',
-                desc = dict(help = 'Remove project'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'project name', choices = project_names),
-                ]
-            ),
-            dict(
-                name = 'list',
-                desc = dict(help = 'List of projects'),
-            ),
-            dict(
-                name = 'modify',
-                desc = dict(help = 'Modify project'),
-                subcommands = project_mod_subcommands,
-            ),
-            dict(
-                name = 'default',
-                desc = dict(help = 'Set project for default. If default project is specified, the \'project\' parameter in the generic commands is optional'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'project name', choices = project_names),
-                ]
-            ),
-        ]
-    ),
-    dict(
-        name = 'repository',
-        desc = dict(help = 'Repository manager commands'),
-        subcommands = [
-            dict(
-                name = 'create',
-                desc = dict(help = 'Create repository'),
-                arguments = [
-                    dict(arg_name = 'path', help = 'Repository path'),
-                    dict(arg_name = '--name', help = 'Repository name. Default: repo dir name', default = None),
-                    dict(arg_name = '--type', help = 'Repository type', choices = ['git'], default = 'git'),
-                    dict(arg_name = '--add-to', help = 'add to projects', choices = project_names, nargs = '*'),
-                ]
-            ),
-            dict(
-                name = 'cmd',
-                desc = dict(help = 'Execute a command on a repository'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'repository name', choices = repository_names),
-                    dict(arg_name = 'command', help = 'command and params'),
-                ]
-            ),
-            dict(
-                name = 'remove',
-                desc = dict(help = 'Remove repository'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'repository name', choices = repository_names),
-                ]
-            ),
-            dict(
-                name = 'list',
-                desc = dict(help = 'List of repositories'),
-            ),
-            dict(
-                name = 'show_path',
-                desc = dict(help = 'Show path repository'),
-                arguments = [
-                    dict(arg_name = 'name', help = 'repository name', choices = repository_names),
-                ],
-            ),
-        ]
-    ),
-    dict(
-        name = 'version',
-        desc = dict(help = 'Show VCP version'),
-    ),
-]
+logger.debug("Logger successfully initialized, start the application.")
+
+# create VCP instance
+vcp = VCP(config_loader)
+
+logger.debug("VCP config processed: {} ms".format((datetime.now() - script_start).total_seconds() * 1000))
 
 # refactor this "if-else" to a cycle if there is a 3rd source
 if 'VCP_DEFAULT_PROJECT' in os.environ:
-    default_project  = os.environ.get('VCP_DEFAULT_PROJECT', None)
+    default_project = os.environ.get('VCP_DEFAULT_PROJECT', None)
     logger.debug("Default project set to '%s' by environment" % default_project)
 else:
     default_project = vcp.default_project
     logger.debug("Default project set to '%s' by config" % default_project)
 
-if default_project not in project_names:
-    logger.warning("Default project '%s' is unknown! Ignored." % default_project)
+if default_project and default_project not in project_names:
+    if vcp.warnings['unknown_default_project']:
+        logger.warning("Default project '%s' is unknown! Ignored." % default_project)
     default_project = None
 
-# add project name parameter for project_action_commands
-for command in project_action_commands:
-    project_param = dict(arg_name = 'name', help = 'project name', choices = project_names)
-    if default_project:
-        project_param.update(nargs = '?', default = default_project)
-    if 'arguments' not in command:
-        command['arguments'] = []
-    command['arguments'].insert(0, project_param)
-    command['arguments'].append(dict(arg_name = '--list', help = 'Print only repo names', action = 'store_true'))
+commands = vcp.get_cli_config(default_project)
 
-vcp.action_commands_lookup(project_action_commands)
+if vcp.project_handler:
+    vcp.project_handler.post_process_cli_config(commands)
 
-parser = CLIArgumentsTreeParser(project_action_commands + manager_commands, 'vcp', argparse.ArgumentParser())
+parser = CLIArgumentsTreeParser(commands, 'vcp', argparse.ArgumentParser())
 parser.build()
 argcomplete.autocomplete(parser.parser, exclude = ['-h', '--help'])
 parser.parser.add_argument('--debug', action = 'store_true')
+logger.debug("Initialization time: {} ms".format((datetime.now() - script_start).total_seconds() * 1000))
 data = parser.parse()
 
 logger.debug("Parsed command line data: %s" %  data)
@@ -280,14 +90,23 @@ def search_and_remove_debug_flag(data):
 search_and_remove_debug_flag(data)
 
 def fetch(arg_data, handler):
+    name = arg_data.name.replace('-', '_')
+    if not hasattr(handler, name):
+        raise Exception("Programming error: unknown subhandler '{}' in handler: '{}'".format(name, handler))
+
+    attr = getattr(handler, name)
+
     if 'sub' in arg_data:
-        fetch(arg_data['sub'], getattr(handler, arg_data.name)())
+        fetch(arg_data['sub'], attr())
     elif 'args' in arg_data:
-        getattr(handler, arg_data.name)(**arg_data['args'])
+        attr(**arg_data['args'])
     else:
-        getattr(handler, arg_data.name)()
+        attr()
 
 try:
     fetch(data['sub'], vcp)
 except Exception as e:
     raise
+finally:
+    time = ((datetime.now() - script_start).total_seconds() * 1000)
+    logger.debug("Full execution time: {} ms ({})".format(time, timedelta(milliseconds = time)))

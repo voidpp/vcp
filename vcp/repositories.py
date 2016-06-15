@@ -1,9 +1,17 @@
+import logging
+from .repository import Repository, register_type
 
-import subprocess
-from .repository import Repository
+logger = logging.getLogger(__name__)
 
+# TODO: refactor this to use GitPython
+@register_type('git')
 class GitRepository(Repository):
-    type = 'git'
+
+    def init(self, url, ref):
+        logger.info("Cloning repository '{}'".format(url))
+        res = self.cmd("git clone {} .".format(url))
+        res += self.cmd("git checkout {}".format(ref))
+        return res
 
     def diff(self):
         return self.cmd("git --no-pager diff")

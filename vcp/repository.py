@@ -3,9 +3,23 @@ import os
 import pty
 from subprocess import Popen, PIPE
 from abc import ABCMeta, abstractmethod
-
 import logging
+
 logger = logging.getLogger(__name__)
+
+def register_type(type_name):
+    def wrapper(cls):
+        RepositoryFactory.types[type_name] = cls
+        return cls
+    return wrapper
+
+class RepositoryFactory(object):
+    types = {}
+
+    def create(self, path, type, name):
+        repo = self.types[type](path, name)
+        repo.type = type
+        return repo
 
 def num_bytes_readable(fd):
     import array
@@ -18,11 +32,11 @@ def num_bytes_readable(fd):
 
 class Repository(object):
     __metaclass__ = ABCMeta
-    type = 'notimplemented'
 
     def __init__(self, path, name):
         self.path = path
         self.name = name
+        self.type = None
 
     def list_cmd(self, command):
         return self.cmd(command).split("\n")[:-1]
@@ -34,6 +48,10 @@ class Repository(object):
         logger.debug("Execute command: '%s' in '%s'" % (command, self.path))
         p.communicate()
         return os.read(master, num_bytes_readable(master))
+
+    @abstractmethod
+    def init(self, url):
+        pass
 
     @abstractmethod
     def diff(self):

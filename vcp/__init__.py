@@ -1,189 +1,44 @@
-
 import os
 import pkg_resources
-from prettytable import PrettyTable
 from functools import partial
 from logging import getLogger
+import collections
 
 from .project import Project
 from .box_renderer import BoxRenderer
-from .git_repository import GitRepository
-from .exceptions import RepositoryException, ProjectException
+from .repository import RepositoryFactory
+from .repositories import GitRepository
+from .project_handler_base import ProjectHandlerFactory
+from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand
+from .project_languages import LanguageFactory
+from .system_package_manager_handlers import SystemPackageManagerHandlerFactory, SystemPackageManagerHandlerException
+from .tools import yaml_add_object_hook_pairs
 
 logger = getLogger(__name__)
 
-class RepositoryFactory(object):
-    def __init__(self):
-        self.types = {}
-        self.types[GitRepository.type] = GitRepository
-
-    def create(self, path, type, name):
-        return self.types[type](path, name)
-
-class ProjectModifyRepositoryCommand(object):
-    def __init__(self, project, vcp):
-        self.project = project
-        self.vcp = vcp
-
-    def add(self, names):
-        self.project.repositories += list(set(names))
-        logger.info("Repo added to project '%s'" % self.project.name)
-        self.vcp.save_config()
-
-    def clear(self):
-        self.project.repositories = []
-        logger.info("Repositories cleared from project '%s'" % self.project.name)
-        self.vcp.save_config()
-
-    def remove(self, names):
-        self.project.repositories = list(set(self.project.repositories) - set(names))
-        logger.info("Repo removed from project '%s'" % self.project.name)
-        self.vcp.save_config()
-
-class ProjectModifyCommand(object):
-    def __init__(self, project, vcp):
-        self.project = project
-        self.vcp = vcp
-
-    def repository(self):
-        return ProjectModifyRepositoryCommand(self.project, self.vcp)
-
-    def description(self, data):
-        self.project.description = data
-        logger.info("Description modified")
-        self.vcp.save_config()
-
-class DyanmicProjectModifyCommand(object):
-    def __init__(self, vcp):
-        self.vcp = vcp
-
-    def __hasattr__(self, name):
-        return name in self.vcp.projects
-
-    def __getattr__(self, name):
-        return partial(ProjectModifyCommand, self.vcp.projects[name], self.vcp)
-
-class ProjectCommand(object):
-    def __init__(self, vcp):
-        self.vcp = vcp
-
-    def create(self, name, description, repositories, default = False):
-        if name in self.vcp.projects:
-            raise ProjectException("Project '%s' is already exists" % name)
-        self.vcp.projects[name] = Project(name, description, repositories)
-
-        if default:
-            self.vcp.default_project = name
-
-        logger.info("Project '%s' created" % name)
-        self.vcp.save_config()
-
-    def default(self, name):
-        self.vcp.default_project = name
-        logger.info("Project '%s' set for default project" % name)
-        self.vcp.save_config()
-
-    def remove(self, name):
-        del self.vcp.projects[name]
-        logger.info("Project '%s' removed" % name)
-        self.vcp.save_config()
-
-    def modify(self):
-        return DyanmicProjectModifyCommand(self.vcp)
-
-    def show(self, name):
-        project = self.vcp.projects[name]
-
-        logger.info("Repositories of '%s'(%s) project:" % (project.name, project.description))
-
-        table = PrettyTable(["Type", "Name", "Path"])
-        table.align = 'l'
-        for repo_name in project.repositories:
-            repo = self.vcp.repositories[repo_name]
-            table.add_row([repo.type, repo.name, repo.path])
-        logger.info(table)
-
-    def list(self):
-        logger.info("Known projects:")
-        table = PrettyTable(["Name", "Description", "Repo cnt"])
-        table.align = 'l'
-        table.align["Repo cnt"] = "r"
-        for project in self.vcp.projects.values():
-            table.add_row([project.name, project.description, len(project.repositories)])
-
-        logger.info(table)
-
-class RepositoryCommand(object):
-    def __init__(self, vcp):
-        self.vcp = vcp
-
-    def cmd(self, name, command):
-        logger.info(self.vcp.repositories[name].cmd(command))
-
-    def show_path(self, name):
-        logger.info(self.vcp.repositories[name].path)
-
-    def list(self):
-        logger.info("Known repositories")
-
-        table = PrettyTable(["Type", "Name", "Path"])
-        table.align = 'l'
-        for repo_name in self.vcp.repositories:
-            repo = self.vcp.repositories[repo_name]
-            table.add_row([repo.type, repo.name, repo.path])
-        logger.info(str(table))
-
-    def remove(self, name):
-        del self.vcp.repositories[name]
-        for prj_name in self.vcp.projects:
-            project = self.vcp.projects[prj_name]
-            if name in project.repositories:
-                project.repositories.remove(name)
-                logger.info("Repository '%s' removed from project '%s'" % (name, prj_name))
-        logger.info("Repository '%s' removed" % name)
-        self.vcp.save_config()
-
-    def create(self, path, type, name, add_to = None):
-        path = os.path.abspath(path)
-        if not os.path.isdir(path):
-            raise RepositoryException("Path '%s' is not exists" % path)
-        if name is None:
-            name = path.split(os.path.sep)[-1:][0]
-
-        if name in self.vcp.repositories:
-            raise ProjectException("Repository '%s' is already exists" % name)
-
-        self.vcp.repositories[name] = self.vcp.repo_factory.create(path, type, name)
-
-        msg = "Repository '%s' created" % name
-
-        if add_to is not None:
-            add_to = set(add_to)
-            for prj_name in add_to:
-                self.vcp.projects[prj_name].repositories.append(name)
-            msg += " and added to project: " + ', '.join(add_to)
-
-        logger.info(msg)
-        self.vcp.save_config()
+CONFIG_FILE_NAME = '.vcp'
 
 class _VCPConfigParser(object):
-    def parse(self, data, vcp):
-        for name in data:
+    def parse(self, config_data, vcp, defaults):
+        for name, default in defaults.items():
+
+            # TODO: recursive update in case of dict data
+            node_value = config_data.get(name, default)
+
             func = 'process_%s' % name
             if not hasattr(self, func):
-                logger.warning("Unknown config node: '%s'" % name)
+                if vcp.warnings['unknown_config_node']:
+                    logger.warning("Unknown config node: '%s'" % name)
                 continue
-            attr = getattr(self, func)
-            logger.debug("Process config node: '%s'" % name)
-            attr(data[name], vcp)
 
-    def process_projects(self, config, vcp):
-        for name in config:
-            project = Project(**config[name])
-            project.db = vcp
-            vcp.projects[name] = project
+            attr = getattr(self, func)
+
+            logger.debug("Process config node: '%s'" % name)
+            attr(node_value, vcp)
+
 
     def process_repositories(self, config, vcp):
+        vcp.repositories = {}
         for name in config:
             vcp.repositories[name] = vcp.repo_factory.create(**config[name])
 
@@ -193,27 +48,113 @@ class _VCPConfigParser(object):
     def process_output_format(self, config, vcp):
         vcp.output_format = config
 
-class VCP(object):
+    def process_warnings(self, config, vcp):
+        vcp.warnings = config
 
-    def __init__(self, config_loader, config_file_name = '.vcp'):
-        self.config_loader = config_loader
-        self.config = self.config_loader.load(config_file_name)
-        logger.debug("Config loaded successfully from '%s'" % self.config_loader.filename)
-        self.default_project = None
-        self.projects = {}
-        self.repositories = {}
+    def process_projects_reference(self, config, vcp):
+        vcp.projects_reference = config
+
+        prj_ref_path = os.path.expanduser(config['path'])
+        config['path'] = prj_ref_path
+        if not os.path.isdir(prj_ref_path):
+            os.mkdir(prj_ref_path)
+
+        vcp.project_handler_factory = ProjectHandlerFactory()
+        vcp.project_handler = vcp.project_handler_factory.create(config['uri'], prj_ref_path)
+
+        if vcp.project_handler is None:
+            return
+
+        vcp.project_handler.config_init()
+
+        projects = vcp.project_handler.load()
+        vcp.projects = {name: Project(name, vcp, data) for name, data in projects.items()}
+
+    def process_python_venv_dir(self, config, vcp):
+        vcp._python_venv_dir = config
+        if not os.path.isdir(vcp.python_venv_dir):
+            os.mkdir(vcp.python_venv_dir)
+
+    # backward compatibility parser for preserve old-style projects
+    def process_projects(self, config, vcp):
+        vcp.repo_groups = config
+
+    def process_repo_groups(self, config, vcp):
+        vcp.repo_groups = config
+
+    def process_npm_config(self, config, vcp):
+        vcp.npm_config = config
+
+class VCP(object):
+    """Config and cli handler class"""
+
+    def __init__(self, config_loader, config_file_name = CONFIG_FILE_NAME):
+
         self.repo_factory = RepositoryFactory()
+        self.language_factory = LanguageFactory()
         self.command_names = []
-        self.output_format = dict(
-            header = dict(
-                show_repo_path = False,
-                width = 100,
-                decorator = '-',
+        self.projects = {}
+        self.project_handler_factory = None
+        self.project_handler = None
+
+        yaml_add_object_hook_pairs(collections.OrderedDict)
+
+        self.warning_descriptors = dict(
+            unknown_default_project = dict(
+                default = True,
+                name = "Unknown default project",
+            ),
+            unknown_config_node = dict(
+                default = True,
+                name = "Unknown config node"
             ),
         )
 
+        config_defaults = dict(
+            default_project = None,
+            repositories = {},
+            output_format = dict(
+                header = dict(
+                    show_repo_path = False,
+                    width = 100,
+                    decorator = '-',
+                ),
+            ),
+            projects_reference = dict(
+                uri = 'local://default',
+                path = '~/.vcp_project_configs/',
+            ),
+            warnings = {name: d['default'] for name, d in self.warning_descriptors.items()},
+            python_venv_dir = '~/.virtualenvs',
+            repo_groups = {},
+            # backward compatibility node for preserve old-style projects
+            projects = {},
+            npm_config = {},
+        )
+
+        self.load_configs(config_defaults, config_loader, config_file_name)
+
+    @property
+    def system_package_manager_handler(self):
+        if not hasattr(self, '__system_package_manager_handler'):
+            try:
+                self.__system_package_manager_handler = SystemPackageManagerHandlerFactory().create()
+            except SystemPackageManagerHandlerException as e:
+                logger.error(e)
+                self.__system_package_manager_handler = None
+        return self.__system_package_manager_handler
+
+    @property
+    def python_venv_dir(self):
+        return os.path.expanduser(self._python_venv_dir)
+
+    def load_configs(self, defaults, config_loader, config_file_name):
+        self.config_loader = config_loader
+        self.config = self.config_loader.load(config_file_name)
+        logger.debug("Config loaded successfully from '%s'" % self.config_loader.filename)
+
         parser = _VCPConfigParser()
-        parser.parse(self.config, self)
+        parser.parse(self.config, self, defaults)
 
         self.box_renderer = BoxRenderer(self.output_format['header'])
 
@@ -240,8 +181,21 @@ class VCP(object):
 
         return action
 
+    def npmconfig(self):
+        return NPMConfigCommand(self)
+
     def version(self):
         logger.info(pkg_resources.get_distribution("vcp").version)
+
+    def warning(self, action, message):
+        self.warnings[message] = True if action == 'enable' else False
+        self.save_config()
+        logger.info("Warning message {}d".format(action))
+
+    def pyvenvdir(self, dir):
+        self._python_venv_dir = dir
+        self.save_config()
+        logger.info("Python virtualenv directory has been saved")
 
     def repository(self):
         return RepositoryCommand(self)
@@ -251,12 +205,282 @@ class VCP(object):
 
     def get_data(self):
         return dict(
-            projects = self.projects,
+            projects_reference = self.projects_reference,
             repositories = self.repositories,
             default_project = self.default_project,
             output_format = self.output_format,
+            warnings = self.warnings,
+            python_venv_dir = self._python_venv_dir,
+            repo_groups = self.repo_groups,
+            npm_config = self.npm_config,
         )
 
     def save_config(self):
         self.config_loader.save(self.get_data())
-        logger.debug("Config saved to '%s'" % self.config_loader.filename)
+        logger.debug("VCP config saved to '%s'" % self.config_loader.filename)
+
+    def save_project_config(self):
+        if self.project_handler is not None:
+            self.project_handler.save({name: project.data for name, project in self.projects.items()})
+
+    def get_cli_config(self, default_project):
+
+        # initialize cli tree
+        project_names = self.projects.keys()
+        repository_names = self.repositories.keys()
+
+        # NOTE: project name parameter added later!
+        project_action_commands = [
+            dict(
+                name = 'status',
+                desc = dict(help = 'Project status'),
+            ),
+            dict(
+                name = 'cmd',
+                desc = dict(help = 'Execute a command on a project (all repos)'),
+                arguments = [
+                    dict(arg_name = 'command', help = 'command and params'),
+                ]
+            ),
+            dict(
+                name = 'untracked',
+                desc = dict(help = 'Untracked files'),
+            ),
+            dict(
+                name = 'dirty',
+                desc = dict(help = 'Dirty files (list of untracked or modified files)'),
+            ),
+            dict(
+                name = 'pushables',
+                desc = dict(help = 'Show all unpushed local commits'),
+                arguments = [
+                    dict(arg_name = '--remote', help = 'remote name', default = 'origin/master')
+                ]
+            ),
+            dict(
+                name = 'fetch',
+                desc = dict(help = 'Fetch repositories'),
+            ),
+            dict(
+                name = 'news',
+                desc = dict(help = 'Project news'),
+                arguments = [
+                    dict(arg_name = ['--fromcache', '-c'], help = 'does not do fetch before the check', action = 'store_true'),
+                ]
+            ),
+            dict(
+                name = 'diff',
+                desc = dict(help = 'Show diff in all repositories'),
+            ),
+            dict(
+                name = 'reset',
+                desc = dict(help = 'Delete all local commits. Warning: BIOHAZARD! Cannot be reverted if reflog is off!'),
+            ),
+        ]
+
+        manager_commands = [
+            dict(
+                name = 'project',
+                desc = dict(help = 'Project manager commands'),
+                subcommands = [
+                    dict(
+                        name = 'init',
+                        desc = dict(help = "Initialize project. This command will clone all locally unknown repositories"),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                            dict(arg_name = '--path', help = 'the base path of the repos (default: current)', default = os.getcwd()),
+                        ]
+                    ),
+                    dict(
+                        name = 'update',
+                        desc = dict(help = "Update project. This command will clone all locally unknown repositories"),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                            dict(arg_name = '--path', help = 'the base path of the repos (default: current)', default = os.getcwd()),
+                        ]
+                    ),
+                    dict(
+                        name = 'create',
+                        desc = dict(help = 'Create project'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name'),
+                            dict(arg_name = '--default', help = 'make this project default', action = 'store_true'),
+                        ]
+                    ),
+                    dict(
+                        name = 'edit',
+                        desc = dict(help = 'Edit project file'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                            dict(arg_name = 'summary', help = 'the summary of the changes', nargs = '?', default = ''),
+                        ]
+                    ),
+                    dict(
+                        name = 'remove',
+                        desc = dict(help = 'Remove project config'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                        ]
+                    ),
+                    dict(
+                        name = 'show',
+                        desc = dict(help = 'Show project'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                        ]
+                    ),
+                    dict(
+                        name = 'list',
+                        desc = dict(help = 'List of projects'),
+                    ),
+                    dict(
+                        name = 'default',
+                        desc = dict(help = 'Set project for default. If default project is specified, the \'project\' parameter in the generic commands is optional'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                        ]
+                    ),
+                    dict(
+                        name = 'config',
+                        desc = dict(help = "Project config commands"),
+                        subcommands = [
+                            dict(
+                                name = 'uri',
+                                desc = dict(help = "Set the projects config storage uri"),
+                                arguments = [
+                                    dict(arg_name = 'value', type = str),
+                                ]
+                            ),
+                            dict(
+                                name = 'path',
+                                desc = dict(help = "Set the projects config storage path"),
+                                arguments = [
+                                    dict(arg_name = 'value', type = str),
+                                ]
+                            ),
+                        ]
+                    ),
+                    dict(
+                        name = 'purge',
+                        desc = dict(help = 'Remove all data about the project except the project config'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                            dict(arg_name = '--iamsure', help = 'confirmation', action = 'store_true'),
+                        ],
+                    ),
+                    dict(
+                        name = 'purge-all',
+                        desc = dict(help = 'Remove all data about all the projects except the project configs'),
+                        arguments = [
+                            dict(arg_name = '--iamsure', help = 'confirmation', action = 'store_true'),
+                        ],
+                    ),
+                ]
+            ),
+            dict(
+                name = 'repository',
+                desc = dict(help = 'Repository manager commands'),
+                subcommands = [
+                    dict(
+                        name = 'create',
+                        desc = dict(help = 'Create repository'),
+                        arguments = [
+                            dict(arg_name = 'path', help = 'Repository path'),
+                            dict(arg_name = '--name', help = 'Repository name. Default: repo dir name', default = None),
+                            dict(arg_name = '--type', help = 'Repository type', choices = ['git'], default = 'git'),
+                            dict(arg_name = '--add-to', help = 'add to projects', choices = project_names, nargs = '*'),
+                        ]
+                    ),
+                    dict(
+                        name = 'cmd',
+                        desc = dict(help = 'Execute a command on a repository'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'repository name', choices = repository_names),
+                            dict(arg_name = 'command', help = 'command and params'),
+                        ]
+                    ),
+                    dict(
+                        name = 'remove',
+                        desc = dict(help = 'Remove repository'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'repository name', choices = repository_names),
+                        ]
+                    ),
+                    dict(
+                        name = 'list',
+                        desc = dict(help = 'List of repositories'),
+                    ),
+                    dict(
+                        name = 'show_path',
+                        desc = dict(help = 'Show path repository'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'repository name', choices = repository_names),
+                        ],
+                    ),
+                    dict(
+                        name = 'clear',
+                        desc = dict(help = 'Remove all repository'),
+                        arguments = [
+                            dict(arg_name = '--iamsure', help = 'confirmation', action = 'store_true'),
+                        ],
+                    ),
+                ]
+            ),
+            dict(
+                name = 'version',
+                desc = dict(help = 'Show VCP version'),
+            ),
+            dict(
+                name = 'warning',
+                desc = dict(help = 'Enable/disable VCP warning message'),
+                arguments = [
+                    dict(arg_name = 'action', help = 'action', choices = ['enable', 'disable']),
+                    dict(arg_name = 'message', help = 'message', choices = self.warning_descriptors.keys()),
+                ],
+            ),
+            dict(
+                name = 'pyvenvdir',
+                desc = dict(help = 'Set the python virtualenv container directory'),
+                arguments = [
+                    dict(arg_name = 'dir', help = 'path'),
+                ],
+            ),
+            dict(
+                name = 'npmconfig',
+                desc = dict(help = 'Manage npm config (for npm related commands)'),
+                subcommands = [
+                    dict(
+                        name = 'set',
+                        desc = dict(help = 'Set config value'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'Repository path'),
+                            dict(arg_name = 'value', help = 'Repository path'),
+                        ]
+                    ),
+                    dict(
+                        name = 'unset',
+                        desc = dict(help = 'Delete config value'),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'config name', choices = self.npm_config.keys()),
+                        ]
+                    ),
+                    dict(
+                        name = 'list',
+                        desc = dict(help = 'Show all configured value'),
+                    ),
+                ]
+            ),
+        ]
+        # add project name parameter for project_action_commands
+        for command in project_action_commands:
+            project_param = dict(arg_name = 'name', help = 'project name', choices = project_names)
+            if default_project:
+                project_param.update(nargs = '?', default = default_project)
+            if 'arguments' not in command:
+                command['arguments'] = []
+            command['arguments'].insert(0, project_param)
+            command['arguments'].append(dict(arg_name = '--list', help = 'Print only repo names', action = 'store_true'))
+
+        self.action_commands_lookup(project_action_commands)
+
+        return project_action_commands + manager_commands
