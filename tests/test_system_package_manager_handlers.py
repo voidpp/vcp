@@ -32,7 +32,7 @@ BUG_REPORT_URL="https://bugs.debian.org/"
 class TestSystemPackageManagerHandler(unittest.TestCase):
 
     @mockfs(dict(etc = {'os-release': OS_RELEASE['debian']}))
-    def test_get_current_ubuntu(self):
+    def test_get_current_debian(self):
         # Arrange
         factory = SystemPackageManagerHandlerFactory()
 
@@ -52,3 +52,14 @@ class TestSystemPackageManagerHandler(unittest.TestCase):
 
         # Assert
         self.assertEqual(os_type, 'ubuntu')
+
+    @mockfs()
+    def test_get_current_missing_file(self):
+        # Arrange
+        factory = SystemPackageManagerHandlerFactory()
+
+        # Act
+        os_type = factory.get_current()
+
+        # Assert
+        self.assertIsNone(os_type)
