@@ -11,8 +11,9 @@ from .repositories import GitRepository
 from .project_handler_base import ProjectHandlerFactory
 from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand
 from .project_languages import LanguageFactory
-from .system_package_manager_handlers import SystemPackageManagerHandlerFactory, SystemPackageManagerHandlerException
+from .system_package_manager_handlers import SystemPackageManagerHandlerFactory
 from .tools import yaml_add_object_hook_pairs
+from .exceptions import SystemPackageManagerHandlerException
 
 logger = getLogger(__name__)
 

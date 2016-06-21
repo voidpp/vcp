@@ -12,3 +12,6 @@ class RepositoryCommandException(RepositoryException):
         self.returncode = returncode
         self.command = command
         self.output = output
+
+class SystemPackageManagerHandlerException(Exception):
+    pass

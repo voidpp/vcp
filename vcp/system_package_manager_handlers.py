@@ -4,6 +4,8 @@ import logging
 from subprocess import check_call, check_output, CalledProcessError, PIPE
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+from .exceptions import SystemPackageManagerHandlerException
+
 logger = logging.getLogger(__name__)
 
 def register(name, distros):
@@ -13,9 +15,6 @@ def register(name, distros):
             SystemPackageManagerHandlerFactory.types[distro] = cls
         return cls
     return wrapper
-
-class SystemPackageManagerHandlerException(Exception):
-    pass
 
 class SystemPackageManagerHandlerFactory(object):
     types = {}
@@ -27,7 +26,7 @@ class SystemPackageManagerHandlerFactory(object):
             return None
         with open(release_info_file) as f:
             data = f.read()
-        matches = re.search('ID=(.+)', data)
+        matches = re.search('^ID=(.+)', data, re.MULTILINE)
         if not matches:
             logger.error("Could not find ID field in release info: %s", data)
             return None
@@ -38,7 +37,7 @@ class SystemPackageManagerHandlerFactory(object):
         if name is None:
             raise SystemPackageManagerHandlerException("Cannot determine the current system distro name.")
         if name not in self.types:
-            raise SystemPackageManagerHandlerException("Unknown distro type %s. Known types: %s", name, self.types.keys())
+            raise SystemPackageManagerHandlerException("Unknown distro type {}. Known types: {}".format(name, self.types.keys()))
         return self.types[name]()
 
 class SystemPackageManagerHandlerHandlerBase(object):
