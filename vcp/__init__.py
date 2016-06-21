@@ -341,6 +341,13 @@ class VCP(object):
                         ]
                     ),
                     dict(
+                        name = 'workon',
+                        desc = dict(help = "Set project for default and set all the dependant project's ref accoring to this project config."),
+                        arguments = [
+                            dict(arg_name = 'name', help = 'project name', choices = project_names),
+                        ]
+                    ),
+                    dict(
                         name = 'config',
                         desc = dict(help = "Project config commands"),
                         subcommands = [

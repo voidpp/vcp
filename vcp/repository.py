@@ -5,6 +5,8 @@ from subprocess import Popen, PIPE
 from abc import ABCMeta, abstractmethod
 import logging
 
+from .exceptions import RepositoryCommandException
+
 logger = logging.getLogger(__name__)
 
 def register_type(type_name):
@@ -41,13 +43,19 @@ class Repository(object):
     def list_cmd(self, command):
         return self.cmd(command).split("\n")[:-1]
 
-    def cmd(self, command):
+    def cmd(self, command, raise_on_error = False):
         # pty for colored output
         master, slave = pty.openpty()
         p = Popen(command, cwd = self.path, shell = True, stdout = slave, stderr = slave)
         logger.debug("Execute command: '%s' in '%s'" % (command, self.path))
         p.communicate()
+        if p.returncode != 0 and raise_on_error:
+            raise RepositoryCommandException(p.returncode, command, os.read(master, num_bytes_readable(master)))
         return os.read(master, num_bytes_readable(master))
+
+    @abstractmethod
+    def set_ref(self, ref):
+        pass
 
     @abstractmethod
     def init(self, url):

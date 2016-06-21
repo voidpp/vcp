@@ -5,7 +5,7 @@ from voidpp_tools.terminal import get_size
 from collections import OrderedDict
 
 from .repository_command_result_box import RepositoryCommandResultBox
-from .exceptions import ProjectException
+from .exceptions import ProjectException, RepositoryCommandException
 from .project_languages import LanguageFactory
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,49 @@ class Project(object):
             if not lang.env.last_status:
                 return False
         return True
+
+    @property
+    def repositories(self):
+        projects = self.get_dependent_projects().values() + [self]
+        return [p.name for p in projects]
+
+    @property
+    def path(self):
+        try:
+            return self.vcp.repositories[self.name].path
+        except KeyError:
+            return None
+
+    @property
+    def initialized(self):
+        return self.name in self.vcp.repositories
+
+    @property
+    def data(self):
+        return OrderedDict([
+            ('description', self.description),
+            ('dependencies', self.dependencies),
+            ('repo', self.repo),
+            ('languages', [l.name for l in self.languages]),
+            ('system_dependencies', self.system_dependencies),
+        ])
+
+    @data.setter
+    def data(self, value):
+        self.description = value['description']
+        self.repo = value['repo']
+        self.dependencies = value['dependencies']
+        self.system_dependencies = value['system_dependencies']
+        self.languages = self.vcp.language_factory.create(self, value['languages'])
+
+    def set_dependencies_state(self):
+        for name in self.get_dependent_projects(recursive = False):
+            ref = self.dependencies[name]
+            try:
+                self.vcp.repositories[name].set_ref(ref)
+                logger.info("Set ref '%s for '%s'", ref, name)
+            except RepositoryCommandException as e:
+                logger.error(e.output)
 
     def init(self, base_path, status, force = False, install_deps = True, init_languages = True, ref = 'master'):
 
@@ -154,40 +197,6 @@ class Project(object):
         for lang in self.languages:
             if type(env) == type(lang.env):
                 lang.install_to(project, env)
-
-    @property
-    def repositories(self):
-        projects = self.get_dependent_projects().values() + [self]
-        return [p.name for p in projects]
-
-    @property
-    def path(self):
-        try:
-            return self.vcp.repositories[self.name].path
-        except KeyError:
-            return None
-
-    @property
-    def initialized(self):
-        return self.name in self.vcp.repositories
-
-    @property
-    def data(self):
-        return OrderedDict([
-            ('description', self.description),
-            ('dependencies', self.dependencies),
-            ('repo', self.repo),
-            ('languages', [l.name for l in self.languages]),
-            ('system_dependencies', self.system_dependencies),
-        ])
-
-    @data.setter
-    def data(self, value):
-        self.description = value['description']
-        self.repo = value['repo']
-        self.dependencies = value['dependencies']
-        self.system_dependencies = value['system_dependencies']
-        self.languages = self.vcp.language_factory.create(self, value['languages'])
 
     def get_sorted_dependencies(self, remove_indirect_deps = False):
         topo = TopologicalSorter(self.get_dependent_projects())

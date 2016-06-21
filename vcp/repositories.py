@@ -40,3 +40,7 @@ class GitRepository(Repository):
 
     def get_untracked_files(self):
         return self.list_cmd("git ls-files --others --exclude-standard")
+
+    def set_ref(self, ref):
+        logger.debug("Set ref {} for repo {}".format(ref, self.name))
+        return self.cmd("git checkout {}".format(ref))

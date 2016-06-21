@@ -101,6 +101,48 @@ class ProjectCommand(object):
                 return False
         return True
 
+    def __default(self, name):
+        self.vcp.default_project = name
+        logger.info("Project '%s' set for default project" % name)
+
+    def __edit(self, project):
+        with tempfile.NamedTemporaryFile(suffix = '.yaml', mode = "rw+") as fd:
+
+            # write project data to the tmp file
+            yaml.dump(project.data, stream = fd, default_flow_style = False)
+            fd.flush()
+
+            # open editor with tmp file
+            editor = os.getenv('EDITOR', default = 'vim')
+            try:
+                check_call([editor, fd.name])
+            except CalledProcessError as e:
+                logger.error("Error occured when calling editor: {}".format(e.output))
+                return False
+
+            # read back the tmp file content
+            fd.seek(0, 0)
+            data = yaml.load(fd)
+
+            # save data if changed
+            if data == project.data:
+                return False
+
+            unknown_deps = []
+            for name, ref in data['dependencies'].items():
+                if name not in self.vcp.projects:
+                    unknown_deps.append(name)
+
+            if len(unknown_deps):
+                logger.error("Unknown dependencies: {}".format(unknown_deps))
+                return False
+
+            project.data = data
+
+        self.vcp.save_config()
+
+        return True
+
     def init(self, name, path, force = False, init_languages = True):
         if not self.__confirm_init_path(path):
             return
@@ -146,43 +188,10 @@ class ProjectCommand(object):
     def config(self):
         return ProjectConfigCommand(self.vcp)
 
-    def __edit(self, project):
-        with tempfile.NamedTemporaryFile(suffix = '.yaml', mode = "rw+") as fd:
-
-            # write project data to the tmp file
-            yaml.dump(project.data, stream = fd, default_flow_style = False)
-            fd.flush()
-
-            # open editor with tmp file
-            editor = os.getenv('EDITOR', default = 'vim')
-            try:
-                check_call([editor, fd.name])
-            except CalledProcessError as e:
-                logger.error("Error occured when calling editor: {}".format(e.output))
-                return False
-
-            # read back the tmp file content
-            fd.seek(0, 0)
-            data = yaml.load(fd)
-
-            # save data if changed
-            if data == project.data:
-                return False
-
-            unknown_deps = []
-            for name, ref in data['dependencies'].items():
-                if name not in self.vcp.projects:
-                    unknown_deps.append(name)
-
-            if len(unknown_deps):
-                logger.error("Unknown dependencies: {}".format(unknown_deps))
-                return False
-
-            project.data = data
-
-        self.vcp.save_config()
-
-        return True
+    def workon(self, name):
+        self.__default(name)
+        prj = self.vcp.projects[name]
+        prj.set_dependencies_state()
 
     def show(self, name):
         prj = self.vcp.projects[name]
@@ -239,8 +248,7 @@ class ProjectCommand(object):
         logger.info("Known projects ({}):\n{}".format(len(projects), table))
 
     def default(self, name):
-        self.vcp.default_project = name
-        logger.info("Project '%s' set for default project" % name)
+        self.__default(name)
         self.vcp.save_config()
 
     @confirm()
