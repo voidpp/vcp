@@ -62,7 +62,7 @@ else:
     default_project = vcp.default_project
     logger.debug("Default project set to '%s' by config" % default_project)
 
-if default_project and default_project not in project_names:
+if default_project and default_project not in vcp.projects.keys():
     if vcp.warnings['unknown_default_project']:
         logger.warning("Default project '%s' is unknown! Ignored." % default_project)
     default_project = None
