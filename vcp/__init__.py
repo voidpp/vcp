@@ -421,6 +421,9 @@ class VCP(object):
                     dict(
                         name = 'list',
                         desc = dict(help = 'List of repositories'),
+                        arguments = [
+                            dict(arg_name = '--format', help = 'Output format', choices = ['table', 'lines'], default = 'table'),
+                        ]
                     ),
                     dict(
                         name = 'show_path',

@@ -298,15 +298,20 @@ class RepositoryCommand(object):
         logger.info(self.vcp.repositories[name].cmd(command))
 
     def show_path(self, name):
-        logger.info(self.vcp.repositories[name].path)
+        print(self.vcp.repositories[name].path)
 
-    def list(self):
-        table = PrettyTable(["Type", "Name", "Path"])
-        table.align = 'l'
-        for repo_name in sorted(self.vcp.repositories):
-            repo = self.vcp.repositories[repo_name]
-            table.add_row([repo.type, repo.name, repo.path])
-        logger.info("Known repositories:\n{}".format(table))
+    def list(self, format):
+        # TODO: refactor this output format to sg generic, which appliable to the whole vcp
+        if format == 'table':
+            table = PrettyTable(["Type", "Name", "Path"])
+            table.align = 'l'
+            for repo_name in sorted(self.vcp.repositories):
+                repo = self.vcp.repositories[repo_name]
+                table.add_row([repo.type, repo.name, repo.path])
+            logger.info("Known repositories:\n{}".format(table))
+        else:
+            # logger prints color codes, but this format use for bash tab completion
+            print('\n'.join(sorted(self.vcp.repositories.keys())))
 
     def remove(self, name):
         del self.vcp.repositories[name]

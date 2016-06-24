@@ -21,5 +21,6 @@ setup(
     packages = find_packages(),
     scripts = [
         'bin/vcp',
+        'vcp_tools.sh',
     ],
 )
