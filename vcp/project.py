@@ -240,6 +240,13 @@ class Project(object):
             if len(commits):
                 yield RepositoryCommandResultBox(repo, "\n".join(commits))
 
+    def unreleased(self):
+        for name in self.repositories:
+            repo = self.vcp.repositories[name]
+            commits = repo.get_commits_from_last_tag()
+            if len(commits):
+                yield RepositoryCommandResultBox(repo, "\n".join(commits))
+
     def diff(self):
         for name in self.repositories:
             repo = self.vcp.repositories[name]

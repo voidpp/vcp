@@ -19,6 +19,10 @@ class GitRepository(Repository):
     def pushables(self, remote):
         return self.list_cmd("git --no-pager log --oneline %s..HEAD" % remote)
 
+    def get_commits_from_last_tag(self):
+        tag = self.cmd("git describe --abbrev=0 --tags").strip()
+        return self.list_cmd("git --no-pager log --oneline {}..HEAD".format(tag))
+
     def get_new_commits(self):
         return self.list_cmd("git --no-pager log --oneline HEAD..origin/master")
 

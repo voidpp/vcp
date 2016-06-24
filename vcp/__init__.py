@@ -277,6 +277,10 @@ class VCP(object):
                 name = 'reset',
                 desc = dict(help = 'Delete all local commits. Warning: BIOHAZARD! Cannot be reverted if reflog is off!'),
             ),
+            dict(
+                name = 'unreleased',
+                desc = dict(help = 'Show all unreleased commits'),
+            )
         ]
 
         manager_commands = [
