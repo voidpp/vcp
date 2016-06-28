@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 
 from voidpp_tools.json_encoder import JsonEncoder
 from voidpp_tools.json_config import JSONConfigLoader
+from voidpp_tools.config_loader import ConfigFileNotFoundException
 
 script_start = datetime.now()
 
@@ -38,7 +39,17 @@ logger.addHandler(console_handler)
 
 config_loader = JSONConfigLoader(vcp.__file__)
 
-config_loader.load(CONFIG_FILE_NAME)
+try:
+    config_loader.load(CONFIG_FILE_NAME)
+except ConfigFileNotFoundException:
+    try:
+        raw_input("Config file not found. Would you like to create an empty one? (yes: enter, no: ctrl+c)")
+        with open(os.path.expanduser('~/.vcp'), 'w') as f:
+            f.write('{}')
+        config_loader.load(CONFIG_FILE_NAME)
+    except KeyboardInterrupt:
+        print("")
+        exit()
 
 config_dir = os.path.dirname(config_loader.filename)
 
