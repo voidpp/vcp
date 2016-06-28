@@ -9,11 +9,12 @@ from .box_renderer import BoxRenderer
 from .repository import RepositoryFactory
 from .repositories import GitRepository
 from .project_handler_base import ProjectHandlerFactory
-from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand
+from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand, PackageCommand
 from .project_languages import LanguageFactory
 from .system_package_manager_handlers import SystemPackageManagerHandlerFactory
 from .tools import yaml_add_object_hook_pairs
 from .exceptions import SystemPackageManagerHandlerException
+from .packages import PackageFactory
 
 logger = getLogger(__name__)
 
@@ -97,6 +98,7 @@ class VCP(object):
         self.projects = {}
         self.project_handler_factory = None
         self.project_handler = None
+        self.package_factory = PackageFactory()
 
         yaml_add_object_hook_pairs(collections.OrderedDict)
 
@@ -223,6 +225,9 @@ class VCP(object):
     def save_project_config(self):
         if self.project_handler is not None:
             self.project_handler.save({name: project.data for name, project in self.projects.items()})
+
+    def package(self):
+        return PackageCommand(self)
 
     def get_cli_config(self, default_project):
 
@@ -485,6 +490,19 @@ class VCP(object):
                     ),
                 ]
             ),
+            dict(
+                name = 'package',
+                desc = dict(help = 'Package managing'),
+                subcommands = [
+                    dict(
+                        name = 'init',
+                        desc = dict(help = 'Initialize '),
+                        arguments = [
+                            dict(arg_name = 'language', help = 'language', choices = ['python']),
+                        ],
+                    ),
+                ],
+            )
         ]
         # add project name parameter for project_action_commands
         for command in project_action_commands:

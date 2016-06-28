@@ -346,3 +346,12 @@ class RepositoryCommand(object):
 
         logger.info(msg)
         self.vcp.save_config()
+
+class PackageCommand(object):
+
+    def __init__(self, vcp):
+        self.vcp = vcp
+
+    def init(self, language):
+        package_handler = self.vcp.package_factory.create(language)
+        package_handler.init()
