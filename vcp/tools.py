@@ -80,3 +80,27 @@ def check_call(command, **kwargs):
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         raise CalledProcessError(p.returncode, command, stderr)
+
+def define_singleton(carrier, name, cls, cls_args = {}):
+    """Creates a property with the given name, but the cls will created only with the first call
+
+    Args:
+        carrier: an instance of the class where want to reach the cls instance
+        name (str): the variable name of the cls instance
+        cls (type): the singleton object type
+        cls_args (dict): optional dict for createing cls
+
+    """
+    instance_name = "__{}".format(name)
+    setattr(carrier, instance_name, None)
+
+    def getter(self):
+        instance = getattr(carrier, instance_name)
+
+        if instance is None:
+            instance = cls(**cls_args)
+            setattr(carrier, instance_name, instance)
+
+        return instance
+
+    setattr(type(carrier), name, property(getter))

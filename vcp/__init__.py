@@ -12,7 +12,7 @@ from .project_handler_base import ProjectHandlerFactory
 from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand, PackageCommand
 from .project_languages import LanguageFactory
 from .system_package_manager_handlers import SystemPackageManagerHandlerFactory
-from .tools import yaml_add_object_hook_pairs
+from .tools import yaml_add_object_hook_pairs, define_singleton
 from .exceptions import SystemPackageManagerHandlerException
 from .packages import PackageFactory
 
@@ -92,13 +92,14 @@ class VCP(object):
 
     def __init__(self, config_loader, config_file_name = CONFIG_FILE_NAME):
 
-        self.repo_factory = RepositoryFactory()
-        self.language_factory = LanguageFactory()
+        define_singleton(self, 'repo_factory', RepositoryFactory)
+        define_singleton(self, 'language_factory', LanguageFactory)
+        define_singleton(self, 'package_factory', PackageFactory)
+
         self.command_names = []
         self.projects = {}
         self.project_handler_factory = None
         self.project_handler = None
-        self.package_factory = PackageFactory()
 
         yaml_add_object_hook_pairs(collections.OrderedDict)
 
