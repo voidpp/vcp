@@ -40,3 +40,8 @@ If the global activation is not working or you just don't want to activate globa
 ```
 eval "$(register-python-argcomplete vcp)"
 ```
+
+To use `vj` command you must add this line the end of the ~/.bashrc file
+```
+source /usr/local/bin/vcp_tools.sh
+```
