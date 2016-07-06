@@ -1,4 +1,5 @@
 import os
+import imp
 from abc import ABCMeta, abstractmethod
 import getpass
 import json
@@ -36,6 +37,12 @@ class PythonPackage(PackageBase):
 
     config_filename = 'setup.json'
 
+    def __get_old_style_config_py_data(self, path):
+        config_py_file_path = os.path.join(path, 'config.py')
+        if not os.path.isfile(config_py_file_path):
+            return {}
+        return imp.load_source('config', config_py_file_path).config
+
     def init(self, path = os.getcwd()):
         config_file_path = os.path.join(path, self.config_filename)
 
@@ -57,6 +64,11 @@ class PythonPackage(PackageBase):
             dict(name = 'include_package_data', label = None, default = True),
             dict(name = 'scripts', label = None, default = []),
         ]
+
+        defaults = self.__get_old_style_config_py_data(path)
+
+        for desc in descriptors:
+            desc['default'] = defaults.get(desc['name'], desc['default'])
 
         data = OrderedDict()
 
