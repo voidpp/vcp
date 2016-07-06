@@ -7,6 +7,7 @@ from collections import OrderedDict
 import logging
 import shutil
 from tools import confirm_prompt
+from setuptools import find_packages
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class PythonPackage(PackageBase):
             dict(name = 'url', label = 'URL', default = None),
             dict(name = 'license', label = 'Licence', default = 'MIT'),
             dict(name = 'install_requires', label = None, default = []),
-            dict(name = 'packages', label = None, default = [dirname]),
+            dict(name = 'packages', label = None, default = find_packages()),
             dict(name = 'include_package_data', label = None, default = True),
             dict(name = 'scripts', label = None, default = []),
         ]
