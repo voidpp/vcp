@@ -1,13 +1,14 @@
 import os
 import imp
-from abc import ABCMeta, abstractmethod
-import getpass
 import json
-from collections import OrderedDict
-import logging
 import shutil
-from tools import confirm_prompt
+import logging
+import getpass
+from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 from setuptools import find_packages
+
+from .tools import confirm_prompt
 
 logger = logging.getLogger(__name__)
 
