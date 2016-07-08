@@ -355,3 +355,11 @@ class PackageCommand(object):
     def init(self, language):
         package_handler = self.vcp.package_factory.create(language)
         package_handler.init()
+
+    def install_requirements(self, language):
+        if language is None:
+            for handler in self.vcp.package_factory.create_all():
+                handler.install_requirements()
+        else:
+            package_handler = self.vcp.package_factory.create(language)
+            package_handler.install_requirements()

@@ -235,6 +235,7 @@ class VCP(object):
         # initialize cli tree
         project_names = self.projects.keys()
         repository_names = self.repositories.keys()
+        package_lang_names = self.package_factory.types.keys()
 
         # NOTE: project name parameter added later!
         project_action_commands = [
@@ -497,9 +498,16 @@ class VCP(object):
                 subcommands = [
                     dict(
                         name = 'init',
-                        desc = dict(help = 'Initialize '),
+                        desc = dict(help = 'Initialize package data'),
                         arguments = [
-                            dict(arg_name = 'language', help = 'language', choices = ['python']),
+                            dict(arg_name = 'language', help = 'language', choices = package_lang_names),
+                        ],
+                    ),
+                    dict(
+                        name = 'install-requirements',
+                        desc = dict(help = 'Install all the packages requirements'),
+                        arguments = [
+                            dict(arg_name = 'language', help = 'language', choices = package_lang_names, nargs = '?', default = None),
                         ],
                     ),
                 ],

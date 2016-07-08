@@ -7,6 +7,7 @@ import getpass
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from setuptools import find_packages
+import pip
 
 from .tools import confirm_prompt
 
@@ -19,6 +20,10 @@ class PackageFactory(object):
     def create(self, name):
         return self.types[name]()
 
+    def create_all(self):
+        for cls in self.types.values():
+            yield cls()
+
 def register(name):
     def decor(cls):
         PackageFactory.types[name] = cls
@@ -30,7 +35,11 @@ class PackageBase(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def init(self):
+    def init(self, path):
+        pass
+
+    @abstractmethod
+    def install_requirements(self):
         pass
 
 
@@ -45,9 +54,11 @@ class PythonPackage(PackageBase):
             return {}
         return imp.load_source('config', config_py_file_path).config
 
-    def init(self, path = os.getcwd()):
-        config_file_path = os.path.join(path, self.config_filename)
+    def config_file_path(self, path):
+        return os.path.join(path, self.config_filename)
 
+    def init(self, path = os.getcwd()):
+        config_file_path = self.config_file_path(path)
         if os.path.exists(config_file_path):
             logger.error("In this folder there is a python package already!")
             return
@@ -110,3 +121,21 @@ class PythonPackage(PackageBase):
             f.write("include setup.json\n")
 
         logger.info("Files created")
+
+
+    def install_requirements(self):
+        config_file_path = self.config_file_path(os.getcwd())
+
+        if not os.path.isfile(config_file_path):
+            raise Exception("This is not a python package ('{}' not found)".format(self.config_filename))
+
+        with open(config_file_path) as f:
+            config_data = json.load(f)
+
+        packages = config_data.get('install_requires', []) + config_data.get('dev_requirements', [])
+
+        if not len(packages):
+            logger.info("There is no packages to install!")
+            return
+
+        pip.main(['install'] + packages + ['--upgrade'])
