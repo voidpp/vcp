@@ -13,10 +13,20 @@ class GitRepository(Repository):
         res += self.cmd("git checkout {}".format(ref))
         return res
 
+    def __get_current_remote(self):
+        return self.cmd("git remote").strip()
+
+    def __get_current_full_branch_name(self):
+        remote = self.__get_current_remote()
+        branch = self.cmd("git rev-parse --abbrev-ref HEAD").strip()
+        return "{}/{}".format(remote, branch)
+
     def diff(self):
         return self.cmd("git --no-pager diff")
 
     def pushables(self, remote):
+        if remote is None:
+            remote = self.__get_current_full_branch_name()
         return self.list_cmd("git --no-pager log --oneline %s..HEAD" % remote)
 
     def get_commits_from_last_tag(self):
@@ -24,7 +34,7 @@ class GitRepository(Repository):
         return self.list_cmd("git --no-pager log --oneline {}..HEAD".format(tag))
 
     def get_new_commits(self):
-        return self.list_cmd("git --no-pager log --oneline HEAD..origin/master")
+        return self.list_cmd("git --no-pager log --oneline HEAD..{}".format(self.__get_current_full_branch_name()))
 
     def fetch(self):
         return self.cmd("git fetch")
@@ -33,7 +43,7 @@ class GitRepository(Repository):
         return self.cmd("git status")
 
     def reset(self):
-        return self.cmd("git reset --hard origin/master")
+        return self.cmd("git reset --hard ".format(self.__get_current_full_branch_name()))
 
     def get_dirty_files(self):
         files = []

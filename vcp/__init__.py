@@ -262,7 +262,7 @@ class VCP(object):
                 name = 'pushables',
                 desc = dict(help = 'Show all unpushed local commits'),
                 arguments = [
-                    dict(arg_name = '--remote', help = 'remote name', default = 'origin/master')
+                    dict(arg_name = '--remote', help = 'remote name', default = None)
                 ]
             ),
             dict(
