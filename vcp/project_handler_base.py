@@ -28,7 +28,7 @@ class ProjectHandlerFactory(object):
         matches = self.schema_pattern.search(uri)
 
         if not matches:
-            logger.error("Unknown uri schema: '%s'", uri)
+            logger.error("Unknown uri schema: '%s'. Added schemas: %s", uri, self.handlers.keys())
             return None
 
         schema = matches.group(1)
