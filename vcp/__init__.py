@@ -354,7 +354,7 @@ class VCP(object):
                     ),
                     dict(
                         name = 'workon',
-                        desc = dict(help = "Set project for default and set all the dependant project's ref accoring to this project config."),
+                        desc = dict(help = "Set project for default and set all the dependant project's ref according to this project config."),
                         arguments = [
                             dict(arg_name = 'name', help = 'project name', choices = project_names),
                         ]

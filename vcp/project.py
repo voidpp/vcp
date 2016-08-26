@@ -113,7 +113,7 @@ class Project(object):
             ref = self.dependencies[name]
             try:
                 self.vcp.repositories[name].set_ref(ref)
-                logger.info("Set ref '%s for '%s'", ref, name)
+                logger.info("Set ref '%s' for '%s'", ref, name)
             except RepositoryCommandException as e:
                 logger.error(e.output)
 
