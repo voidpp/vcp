@@ -192,6 +192,7 @@ class ProjectCommand(object):
         self.__default(name)
         prj = self.vcp.projects[name]
         prj.set_dependencies_state()
+        self.vcp.save_config()
 
     def show(self, name):
         prj = self.vcp.projects[name]
