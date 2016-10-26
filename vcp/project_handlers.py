@@ -121,5 +121,6 @@ class GitProjectHandler(ProjectHandlerBase):
     def update(self):
         try:
             check_call(['git', 'pull', '--rebase'], cwd = self.path)
+            logger.info("Project config repo updated.")
         except CalledProcessError as e:
             logger.error("Cannot update the project's repository because of:\n%s", e.output)

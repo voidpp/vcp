@@ -63,6 +63,9 @@ class ProjectConfigCommand(object):
         self.vcp.projects_reference['path'] = value
         self.vcp.save_config()
 
+    def update(self):
+        self.vcp.project_handler.update()
+
 class ProjectCommand(object):
     def __init__(self, vcp):
         self.vcp = vcp

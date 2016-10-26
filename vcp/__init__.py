@@ -377,6 +377,11 @@ class VCP(object):
                                     dict(arg_name = 'value', type = str),
                                 ]
                             ),
+                            dict(
+                                name = 'update',
+                                desc = dict(help = "Update the project config storage"),
+                                arguments = []
+                            ),
                         ]
                     ),
                     dict(
