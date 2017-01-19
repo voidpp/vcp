@@ -57,7 +57,7 @@ class SystemPackageManagerHandlerHandlerBase(object):
     def is_package_installed(self, name):
         pass
 
-@register('dpkg', ['debian', 'ubuntu'])
+@register('dpkg', ['debian', 'ubuntu', 'linuxmint'])
 class DPKGHandler(SystemPackageManagerHandlerHandlerBase):
 
     __metaclass__ = ABCMeta
