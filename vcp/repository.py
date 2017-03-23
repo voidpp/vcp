@@ -43,15 +43,25 @@ class Repository(object):
     def list_cmd(self, command):
         return self.cmd(command).split("\n")[:-1]
 
+    # somewhat this way to get colored output stucks the execution on osx
+    # def cmd(self, command, raise_on_error = False):
+    #     # pty for colored output
+    #     master, slave = pty.openpty()
+    #     p = Popen(command, cwd = self.path, shell = True, stdout = slave, stderr = slave)
+    #     logger.debug("Execute command: '%s' in '%s'" % (command, self.path))
+    #     p.communicate()
+    #     if p.returncode != 0 and raise_on_error:
+    #         raise RepositoryCommandException(p.returncode, command, os.read(master, num_bytes_readable(master)))
+    #     return os.read(master, num_bytes_readable(master))
+
     def cmd(self, command, raise_on_error = False):
-        # pty for colored output
-        master, slave = pty.openpty()
-        p = Popen(command, cwd = self.path, shell = True, stdout = slave, stderr = slave)
-        logger.debug("Execute command: '%s' in '%s'" % (command, self.path))
-        p.communicate()
+        from subprocess import STDOUT
+        logger.debug("Execute command: '%s' in '%s'", command, self.path)
+        p = Popen(command, shell = True, cwd = self.path, stdout = PIPE, stderr = STDOUT)
+        stdout, _ = p.communicate()
         if p.returncode != 0 and raise_on_error:
-            raise RepositoryCommandException(p.returncode, command, os.read(master, num_bytes_readable(master)))
-        return os.read(master, num_bytes_readable(master))
+            raise RepositoryCommandException(p.returncode, command, stdout)
+        return stdout
 
     @abstractmethod
     def set_ref(self, ref):
