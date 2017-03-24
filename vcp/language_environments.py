@@ -29,13 +29,14 @@ class PythonEnvironment(VirtualEnvironment, EnvironmentBase):
 
 class JavascriptEnvironment(dict, EnvironmentBase):
 
-    def __init__(self, path, config = {}):
+    def __init__(self, path, config = {}, npm_usage_config = {}):
         self.path = path
         self.vars = vars
         self.__env = os.environ.copy()
         self.__env.update({"npm_config_{}".format(name): val for name, val in config.items()})
-        self.__bin = 'npm'
+        self.__bin = npm_usage_config.get('command_override', 'npm')
         self.__last_status = False
+        self.__do_status_check = npm_usage_config.get('check_status', True)
 
     @property
     def last_status(self):
@@ -59,6 +60,9 @@ class JavascriptEnvironment(dict, EnvironmentBase):
         return self.npm(cmd)
 
     def get_status(self):
+        if not self.__do_status_check:
+            return True
+
         try:
             # npm ls will return 1 when there is an error with the packages (missing, extranous, etc...)
             check_call([self.__bin, 'ls'], env = self.__env, cwd = self.path)

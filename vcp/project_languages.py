@@ -101,7 +101,7 @@ class Javascript(LanguageBase):
     @property
     def env(self):
         if self._env is None:
-            self._env = JavascriptEnvironment(self.project.path, self.project.vcp.npm_config)
+            self._env = JavascriptEnvironment(self.project.path, self.project.vcp.npm_config, self.project.vcp.npm_usage_config)
         return self._env
 
     def get_package_name(self):

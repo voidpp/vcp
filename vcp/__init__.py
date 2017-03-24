@@ -87,6 +87,9 @@ class _VCPConfigParser(object):
     def process_npm_config(self, config, vcp):
         vcp.npm_config = config
 
+    def process_npm_usage_config(self, config, vcp):
+        vcp.npm_usage_config = config
+
 class VCP(object):
     """Config and cli handler class"""
 
@@ -134,6 +137,7 @@ class VCP(object):
             # backward compatibility node for preserve old-style projects
             projects = {},
             npm_config = {},
+            npm_usage_config = {},
         )
 
         self.load_configs(config_defaults, config_loader, config_file_name)
@@ -217,6 +221,7 @@ class VCP(object):
             python_venv_dir = self._python_venv_dir,
             repo_groups = self.repo_groups,
             npm_config = self.npm_config,
+            npm_usage_config = self.npm_usage_config,
         )
 
     def save_config(self):
