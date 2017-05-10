@@ -104,7 +104,7 @@ class DPKGHandler(SystemPackageManagerHandlerHandlerBase):
             else:
                 raise
 
-@register('dpkg', LinuxDeterminer('arch'))
+@register('pacman', LinuxDeterminer('arch'))
 class PacManHandler(SystemPackageManagerHandlerHandlerBase):
 
     def is_package_installed(self, name):
