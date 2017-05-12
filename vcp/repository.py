@@ -76,6 +76,10 @@ class Repository(object):
         pass
 
     @abstractmethod
+    def update(self):
+        pass
+
+    @abstractmethod
     def fetch(self):
         pass
 

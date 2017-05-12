@@ -155,12 +155,15 @@ class Project(object):
                     logger.error("Need to install these system packages: %s", ', '.join(packages))
                     return False
 
-            if not repo_exists:
+            # create repo config
+            repo = self.vcp.repo_factory.create(repo_dir, self.repo['type'], self.name)
+
+            if repo_exists:
+                repo.update()
+            else:
                 # create folder
                 os.mkdir(repo_dir)
 
-                # create repo config
-                repo = self.vcp.repo_factory.create(repo_dir, self.repo['type'], self.name)
                 repo.init(self.repo['url'], ref)
                 self.vcp.repositories[self.name] = repo
 

@@ -36,6 +36,10 @@ class GitRepository(Repository):
     def get_new_commits(self):
         return self.list_cmd("git --no-pager log --oneline HEAD..{}".format(self.__get_current_full_branch_name()))
 
+    def update(self):
+        logger.info("Pull repository and rebasing...")
+        return self.cmd("git pull --rebase")
+
     def fetch(self):
         return self.cmd("git fetch")
 

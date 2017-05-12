@@ -306,6 +306,7 @@ class VCP(object):
                         arguments = [
                             dict(arg_name = 'name', help = 'project name', choices = project_names),
                             dict(arg_name = '--path', help = 'the base path of the repos (default: current)', default = os.getcwd()),
+                            dict(arg_name = '--force', help = 'git pull --rebase and reinit lang pkg', action = 'store_true', default = False),
                         ]
                     ),
                     dict(

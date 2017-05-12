@@ -171,22 +171,7 @@ class ProjectCommand(object):
 
     def update(self, name, path):
         self.vcp.project_handler.update()
-        project = self.vcp.projects[name]
-
-        initialized = project.initialized
-
-        for prj in project.get_dependent_projects().values():
-            initialized &= prj.initialized
-
-        if initialized:
-            logger.info("Everything is up to date!")
-            return
-
-        if not self.__confirm_init_path(path):
-            logger.info("Cancelling...")
-            return
-
-        self.init(name, path, force = True, init_languages = False)
+        self.init(name, path, force = True, init_languages = True)
 
     def config(self):
         return ProjectConfigCommand(self.vcp)
