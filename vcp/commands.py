@@ -256,6 +256,20 @@ class ProjectCommand(object):
         self.vcp.save_config()
 
 
+class PythonVenvCommand(object):
+    def __init__(self, vcp):
+        self.vcp = vcp
+
+    def path(self, value):
+        self.vcp.python_venv['path'] = value
+        self.vcp.save_config()
+        logger.info("Python virtual environment storage path has been saved")
+
+    def interpreter(self, value):
+        self.vcp.python_venv['interpreter'] = value
+        self.vcp.save_config()
+        logger.info("Python virtual environment interpreter has been saved")
+
 class NPMConfigCommand(object):
     def __init__(self, vcp):
         self.vcp = vcp

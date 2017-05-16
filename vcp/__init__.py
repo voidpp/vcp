@@ -9,7 +9,7 @@ from .box_renderer import BoxRenderer
 from .repository import RepositoryFactory
 from .repositories import GitRepository
 from .project_handler_base import ProjectHandlerFactory
-from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand, PackageCommand
+from .commands import RepositoryCommand, ProjectCommand, NPMConfigCommand, PackageCommand, PythonVenvCommand
 from .project_languages import LanguageFactory
 from .system_package_manager_handlers import SystemPackageManagerHandlerFactory
 from .tools import yaml_add_object_hook_pairs, define_singleton
@@ -73,9 +73,13 @@ class _VCPConfigParser(object):
         vcp.projects = {name: Project(name, vcp, data) for name, data in projects.items()}
 
     def process_python_venv_dir(self, config, vcp):
-        vcp._python_venv_dir = config
-        if not os.path.isdir(vcp.python_venv_dir):
-            os.mkdir(vcp.python_venv_dir)
+        vcp.python_venv['path'] = config
+
+    def process_python_venv(self, config, vcp):
+        vcp.python_venv.update(config)
+        path = os.path.normpath(os.path.expanduser(vcp.python_venv['path']))
+        if not os.path.isdir(path):
+            logger.warning("Python virtual env path does not exists! ({})".format(vcp.python_venv['path']))
 
     # backward compatibility parser for preserve old-style projects
     def process_projects(self, config, vcp):
@@ -103,6 +107,7 @@ class VCP(object):
         self.projects = {}
         self.project_handler_factory = None
         self.project_handler = None
+        self.python_venv = {}
 
         yaml_add_object_hook_pairs(collections.OrderedDict)
 
@@ -132,7 +137,10 @@ class VCP(object):
                 path = '~/.vcp_project_configs/',
             ),
             warnings = {name: d['default'] for name, d in self.warning_descriptors.items()},
-            python_venv_dir = '~/.virtualenvs',
+            python_venv = dict(
+                path = '~/.virtualenvs',
+                interpreter = 'python2',
+            ),
             repo_groups = {},
             # backward compatibility node for preserve old-style projects
             projects = {},
@@ -152,10 +160,6 @@ class VCP(object):
                 self.__system_package_manager_handler = None
         return self.__system_package_manager_handler
 
-    @property
-    def python_venv_dir(self):
-        return os.path.expanduser(self._python_venv_dir)
-
     def load_configs(self, defaults, config_loader, config_file_name):
         self.config_loader = config_loader
         self.config = self.config_loader.load(config_file_name)
@@ -174,7 +178,7 @@ class VCP(object):
     # common handler for all project related action commands
     def __getattr__(self, attr_name):
         if attr_name not in self.command_names:
-            raise KeyError(attr_name)
+            raise KeyError("Unknown project related command: '{}'".format(attr_name))
 
         def action(name, **kwargs):
             list = kwargs['list']
@@ -192,6 +196,9 @@ class VCP(object):
     def npmconfig(self):
         return NPMConfigCommand(self)
 
+    def pyvenv(self):
+        return PythonVenvCommand(self)
+
     def version(self):
         logger.info(pkg_resources.get_distribution("vcp").version)
 
@@ -199,11 +206,6 @@ class VCP(object):
         self.warnings[message] = True if action == 'enable' else False
         self.save_config()
         logger.info("Warning message {}d".format(action))
-
-    def pyvenvdir(self, dir):
-        self._python_venv_dir = dir
-        self.save_config()
-        logger.info("Python virtualenv directory has been saved")
 
     def repository(self):
         return RepositoryCommand(self)
@@ -218,7 +220,7 @@ class VCP(object):
             default_project = self.default_project,
             output_format = self.output_format,
             warnings = self.warnings,
-            python_venv_dir = self._python_venv_dir,
+            python_venv = self.python_venv,
             repo_groups = self.repo_groups,
             npm_config = self.npm_config,
             npm_usage_config = self.npm_usage_config,
@@ -472,11 +474,24 @@ class VCP(object):
                 ],
             ),
             dict(
-                name = 'pyvenvdir',
-                desc = dict(help = 'Set the python virtualenv container directory'),
-                arguments = [
-                    dict(arg_name = 'dir', help = 'path'),
-                ],
+                name = 'pyvenv',
+                desc = dict(help = 'Set the python virtualenv stuffs'),
+                subcommands = [
+                    dict(
+                        name = 'path',
+                        desc = dict(help = "Set storage path"),
+                        arguments = [
+                            dict(arg_name = 'value', type = str),
+                        ]
+                    ),
+                    dict(
+                        name = 'interpreter',
+                        desc = dict(help = "set interpreter"),
+                        arguments = [
+                            dict(arg_name = 'value', type = str),
+                        ]
+                    ),
+                ]
             ),
             dict(
                 name = 'npmconfig',

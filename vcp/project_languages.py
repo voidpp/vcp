@@ -64,13 +64,17 @@ class LanguageBase(object):
 class Python(LanguageBase):
 
     @property
-    def __env_path(self):
-        return os.path.join(self.project.vcp.python_venv_dir, self.project.name)
+    def _env_path(self):
+        return os.path.join(self.project.vcp.python_venv['path'], self.project.name)
+
+    @property
+    def _interpreter(self):
+        return self.project.vcp.python_venv['interpreter']
 
     @property
     def env(self):
         if self._env is None:
-            self._env = PythonEnvironment(self.__env_path, python = 'python2')
+            self._env = PythonEnvironment(self._env_path, python = self._interpreter)
             if not self._env._pip_exists():
                 logger.info("Create virtual environment for project '{}'".format(self.project.name))
             self._env.open_or_create()
@@ -91,9 +95,24 @@ class Python(LanguageBase):
         return self.install_dev(self.project.path, self.env)
 
     def purge(self):
-        if os.path.isdir(self.__env_path):
-            logger.debug("Remove python virtual environment from '{}'".format(self.__env_path))
-            shutil.rmtree(self.__env_path)
+        if os.path.isdir(self._env_path):
+            logger.debug("Remove python virtual environment from '{}'".format(self._env_path))
+            shutil.rmtree(self._env_path)
+
+
+@register('python2')
+class Python2(LanguageBase):
+
+    @property
+    def _interpreter(self):
+        return 'python2'
+
+@register('python3')
+class Python3(LanguageBase):
+
+    @property
+    def _interpreter(self):
+        return 'python3'
 
 @register('javascript')
 class Javascript(LanguageBase):
