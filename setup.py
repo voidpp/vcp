@@ -4,10 +4,10 @@ import subprocess
 
 setup(
     name = "vcp",
-    version = "2.8.0",
+    version = "2.9.0",
     description = "Version Control Projects - organize repositories",
     author = 'Lajos Santa',
-    author_email = 'santa.lajos@coldline.hu',
+    author_email = 'santa.lajos@gmail.com',
     url = 'https://github.com/voidpp/vcp.git',
     license = 'MIT',
     install_requires = [

@@ -99,6 +99,10 @@ class Repository(object):
     def get_dirty_files(self):
         pass
 
+    @abstractmethod
+    def get_own_commits_since(self, since_str):
+        pass
+
     def __repr__(self):
         return "<Repository: %s>" % self.__dict__()
 
