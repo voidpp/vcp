@@ -292,7 +292,19 @@ class VCP(object):
             dict(
                 name = 'unreleased',
                 desc = dict(help = 'Show all unreleased commits'),
-            )
+            ),
+            dict(
+                name = 'standup',
+                desc = dict(help = 'List your commits from the last 24 hour'),
+                arguments = [
+                    dict(
+                        arg_name = ['--length', '-l'],
+                        help = 'duration length (examples: 24h, 1d, 26h, 1d1h) (m: mins, h: hours, d: days, w: weeks)',
+                        type = str,
+                        default = '24h',
+                    ),
+                ]
+            ),
         ]
 
         manager_commands = [

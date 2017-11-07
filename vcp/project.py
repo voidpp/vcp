@@ -3,6 +3,8 @@ import shutil
 import logging
 from voidpp_tools.terminal import get_size
 from collections import OrderedDict
+import re
+from datetime import timedelta, datetime
 
 from .repository_command_result_box import RepositoryCommandResultBox
 from .exceptions import ProjectException, RepositoryCommandException
@@ -282,6 +284,39 @@ class Project(object):
         for name in self.repositories:
             repo = self.vcp.repositories[name]
             res = repo.fetch()
+            if len(res):
+                yield RepositoryCommandResultBox(repo, res)
+
+    def standup(self, length):
+        lengths = OrderedDict([
+            ('w', 60 * 24 * 7),
+            ('d', 60 * 24),
+            ('h', 60),
+            ('m', 1),
+        ])
+
+        decode_pattern = re.compile(''.join(['([\d]+{})?'.format(k) for k in lengths]))
+        res = decode_pattern.match(length)
+        if not res:
+            raise Exception('go back')
+
+        length_items = list(lengths)
+
+        value = 0
+        for idx, grp in enumerate(res.groups()):
+            if grp is None:
+                continue
+            abbr = length_items[idx]
+            val = int(grp[:-1])
+            value += val * lengths[abbr]
+
+        time_len = timedelta(minutes = value)
+
+        since = datetime.now() - time_len
+
+        for name in self.repositories:
+            repo = self.vcp.repositories[name]
+            res = repo.get_own_commits_since(since.isoformat())
             if len(res):
                 yield RepositoryCommandResultBox(repo, res)
 

@@ -7,7 +7,7 @@ setup(
     version = "2.7.0",
     description = "Version Control Projects - organize repositories",
     author = 'Lajos Santa',
-    author_email = 'santa.lajos@coldline.hu',
+    author_email = 'santa.lajos@gmail.com',
     url = 'https://github.com/voidpp/vcp.git',
     license = 'MIT',
     install_requires = [

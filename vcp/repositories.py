@@ -49,6 +49,10 @@ class GitRepository(Repository):
     def reset(self):
         return self.cmd("git reset --hard ".format(self.__get_current_full_branch_name()))
 
+    def get_own_commits_since(self, since_str):
+        user = self.cmd("git config --get user.name").strip()
+        return self.cmd("git --no-pager log --oneline --author='{}' --since='{}'".format(user, since_str))
+
     def get_dirty_files(self):
         files = []
         for file in self.list_cmd("git status --short"):
