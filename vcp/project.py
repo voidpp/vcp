@@ -119,6 +119,23 @@ class Project(object):
             except RepositoryCommandException as e:
                 logger.error(e.output)
 
+    def search_for_ref_in_deps(self, project_name, projects):
+        ref = None
+        refprj = None
+        for prj in projects:
+            depref = prj.dependencies.get(project_name)
+            if depref is None:
+                continue
+            if ref is not None and ref != depref:
+                raise Exception("Found multiple refs for dep '{}', {}:{} and {}:{} ".format(project_name, prj.name, depref, refprj, ref))
+            ref = depref
+            refprj = prj.name
+
+        if ref is None:
+            raise Exception("Cannot find ref for '{}' but it's impossible!".format(project_name))
+
+        return ref
+
     def init(self, base_path, status, force = False, install_deps = True, init_languages = True, ref = 'master'):
 
         repo_exists = self.name in self.vcp.repositories
@@ -137,7 +154,10 @@ class Project(object):
             logger.info("Dependencies of %s: %s", self.name, [p.name for p in projects])
 
             for project in reversed(projects):
-                ref = self.dependencies[project.name]
+                try:
+                    ref = self.dependencies[project.name]
+                except KeyError as e:
+                    ref = self.search_for_ref_in_deps(project.name, projects)
                 if not project.init(base_path, status, force, install_deps = False, init_languages = init_languages, ref = ref):
                     return False
 

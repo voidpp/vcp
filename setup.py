@@ -4,7 +4,7 @@ import subprocess
 
 setup(
     name = "vcp",
-    version = "2.9.0",
+    version = "2.9.1",
     description = "Version Control Projects - organize repositories",
     author = 'Lajos Santa',
     author_email = 'santa.lajos@gmail.com',
