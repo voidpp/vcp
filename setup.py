@@ -1,15 +1,15 @@
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-import subprocess
 
 setup(
     name = "vcp",
-    version = "2.7.0",
     description = "Version Control Projects - organize repositories",
     author = 'Lajos Santa',
     author_email = 'santa.lajos@gmail.com',
     url = 'https://github.com/voidpp/vcp.git',
     license = 'MIT',
+    setup_requires = ["setuptools_scm"],
+    include_package_data = True,
+    use_scm_version = True,
     install_requires = [
         "prettytable==0.7.2",
         "argcomplete==1.0.0",
