@@ -22,9 +22,7 @@ class LanguageFactory(object):
     def create(self, project, types):
         return [self.types[t](project, t) for t in types]
 
-class LanguageBase(object):
-
-    __metaclass__ = ABCMeta
+class LanguageBase(object, metaclass=ABCMeta):
 
     def __init__(self, project, name):
         self.name = name
@@ -84,7 +82,7 @@ class Python(LanguageBase):
         self.install_dev(self.project.path, env)
 
     def init(self):
-        for name, project in self.project.get_dependent_projects().items():
+        for name, project in list(self.project.get_dependent_projects().items()):
             project.install_to(self.project, self.env)
 
         logger.info("Install '{}' as editable package".format(self.project.name))
@@ -121,7 +119,7 @@ class Javascript(LanguageBase):
         try:
             # for create an order, needs all dep recursively, but after this the not direct dep must be not linked, so need to remove
             all_deps = self.project.get_sorted_dependencies(remove_indirect_deps = True)
-            direct_dep_names = self.project.dependencies.keys()
+            direct_dep_names = list(self.project.dependencies.keys())
             deps = [p for p in all_deps if p.name in direct_dep_names]
 
             for project in reversed(deps):

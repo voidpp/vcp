@@ -21,15 +21,13 @@ class SystemPackageManagerHandlerFactory(object):
     types = {}
 
     def create(self):
-        for name, cls in self.types.items():
+        for name, cls in list(self.types.items()):
             if cls.determiner.test():
                 return self.types[name]()
 
         raise SystemPackageManagerHandlerException("Cannot determine the current system distro name.")
 
-class SystemPackageManagerHandlerHandlerBase(object):
-
-    __metaclass__ = ABCMeta
+class SystemPackageManagerHandlerHandlerBase(object, metaclass=ABCMeta):
 
     def get_system_dependencies(self, project):
         if self.name not in project.system_dependencies:
@@ -44,9 +42,7 @@ class SystemPackageManagerHandlerHandlerBase(object):
     def is_package_installed(self, name):
         pass
 
-class DeterminerBase(object):
-
-    __metaclass__ = ABCMeta
+class DeterminerBase(object, metaclass=ABCMeta):
 
     @abstractmethod
     def test(self):

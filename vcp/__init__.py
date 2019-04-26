@@ -22,7 +22,7 @@ CONFIG_FILE_NAME = '.vcp'
 
 class _VCPConfigParser(object):
     def parse(self, config_data, vcp, defaults):
-        for name, default in defaults.items():
+        for name, default in list(defaults.items()):
 
             # TODO: recursive update in case of dict data
             node_value = config_data.get(name, default)
@@ -70,7 +70,7 @@ class _VCPConfigParser(object):
         vcp.project_handler.config_init()
 
         projects = vcp.project_handler.load()
-        vcp.projects = {name: Project(name, vcp, data) for name, data in projects.items()}
+        vcp.projects = {name: Project(name, vcp, data) for name, data in list(projects.items())}
 
     def process_python_venv_dir(self, config, vcp):
         vcp._python_venv_dir = config
@@ -131,7 +131,7 @@ class VCP(object):
                 uri = 'local://default',
                 path = '~/.vcp_project_configs/',
             ),
-            warnings = {name: d['default'] for name, d in self.warning_descriptors.items()},
+            warnings = {name: d['default'] for name, d in list(self.warning_descriptors.items())},
             python_venv_dir = '~/.virtualenvs',
             repo_groups = {},
             # backward compatibility node for preserve old-style projects
@@ -230,7 +230,7 @@ class VCP(object):
 
     def save_project_config(self):
         if self.project_handler is not None:
-            self.project_handler.save({name: project.data for name, project in self.projects.items()})
+            self.project_handler.save({name: project.data for name, project in list(self.projects.items())})
 
     def package(self):
         return PackageCommand(self)
@@ -238,9 +238,9 @@ class VCP(object):
     def get_cli_config(self, default_project):
 
         # initialize cli tree
-        project_names = self.projects.keys()
-        repository_names = self.repositories.keys()
-        package_lang_names = self.package_factory.types.keys()
+        project_names = list(self.projects.keys())
+        repository_names = list(self.repositories.keys())
+        package_lang_names = list(self.package_factory.types.keys())
 
         # NOTE: project name parameter added later!
         project_action_commands = [
@@ -468,7 +468,7 @@ class VCP(object):
                 desc = dict(help = 'Enable/disable VCP warning message'),
                 arguments = [
                     dict(arg_name = 'action', help = 'action', choices = ['enable', 'disable']),
-                    dict(arg_name = 'message', help = 'message', choices = self.warning_descriptors.keys()),
+                    dict(arg_name = 'message', help = 'message', choices = list(self.warning_descriptors.keys())),
                 ],
             ),
             dict(
@@ -494,7 +494,7 @@ class VCP(object):
                         name = 'unset',
                         desc = dict(help = 'Delete config value'),
                         arguments = [
-                            dict(arg_name = 'name', help = 'config name', choices = self.npm_config.keys()),
+                            dict(arg_name = 'name', help = 'config name', choices = list(self.npm_config.keys())),
                         ]
                     ),
                     dict(

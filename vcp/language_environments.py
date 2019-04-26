@@ -6,9 +6,7 @@ from virtualenvapi.manage import VirtualEnvironment
 
 logger = logging.getLogger(__name__)
 
-class EnvironmentBase(object):
-
-    __metaclass__ = ABCMeta
+class EnvironmentBase(object, metaclass=ABCMeta):
 
     @abstractmethod
     def get_status(self, force = False):
@@ -33,7 +31,7 @@ class JavascriptEnvironment(dict, EnvironmentBase):
         self.path = path
         self.vars = vars
         self.__env = os.environ.copy()
-        self.__env.update({"npm_config_{}".format(name): val for name, val in config.items()})
+        self.__env.update({"npm_config_{}".format(name): val for name, val in list(config.items())})
         self.__bin = npm_usage_config.get('command_override', 'npm')
         self.__last_status = False
         self.__do_status_check = npm_usage_config.get('check_status', True)

@@ -13,7 +13,7 @@ class ProjectHandlerFactory(object):
     handlers = {}
 
     def __init__(self):
-        self.schema_pattern = re.compile("^({}):\/\/(.+)".format('|'.join(self.handlers.keys())))
+        self.schema_pattern = re.compile("^({}):\/\/(.+)".format('|'.join(list(self.handlers.keys()))))
 
     def create(self, uri, local_path):
         """Create a project handler
@@ -28,7 +28,7 @@ class ProjectHandlerFactory(object):
         matches = self.schema_pattern.search(uri)
 
         if not matches:
-            logger.error("Unknown uri schema: '%s'. Added schemas: %s", uri, self.handlers.keys())
+            logger.error("Unknown uri schema: '%s'. Added schemas: %s", uri, list(self.handlers.keys()))
             return None
 
         schema = matches.group(1)
@@ -43,9 +43,7 @@ def register_schema(schema):
         return cls
     return decorator
 
-class ProjectHandlerBase(object):
-
-    __metaclass__ = ABCMeta
+class ProjectHandlerBase(object, metaclass=ABCMeta):
 
     def __init__(self, url, path):
         self.url = url
@@ -103,7 +101,7 @@ class ProjectHandlerBase(object):
 
         logger.debug("Save projects config to %s", base_path)
 
-        for name, data in projects.items():
+        for name, data in list(projects.items()):
             project_file_path = self.get_project_config_path(name)
             with open(project_file_path, "w") as f:
                 yaml.dump(data, stream = f, default_flow_style = False)

@@ -31,7 +31,7 @@ class TopologicalSorter(object):
     def sort(self):
         while True:
             has_unmarked = False
-            for name, node in self.nodes.items():
+            for name, node in list(self.nodes.items()):
                 if not self.has_permanent_mark(node):
                     has_unmarked = True
                     self.__visit(node)
@@ -45,7 +45,7 @@ class TopologicalSorter(object):
 
         if not self.has_permanent_mark(node):
             self.marks[node.name] = 'temp'
-            for dep in node.get_dependent_projects().values():
+            for dep in list(node.get_dependent_projects().values()):
                 self.__visit(dep)
             self.marks[node.name] = 'permanent'
             self.result.insert(0, node)
@@ -76,7 +76,7 @@ class Project(object):
 
     @property
     def repositories(self):
-        projects = self.get_dependent_projects().values() + [self]
+        projects = list(self.get_dependent_projects().values()) + [self]
         return [p.name for p in projects]
 
     @property
@@ -223,7 +223,7 @@ class Project(object):
             dict of project name and project instances
         """
         projects = {}
-        for name, ref in self.dependencies.items():
+        for name, ref in list(self.dependencies.items()):
             try:
                 prj = self.vcp.projects[name]
             except KeyError:

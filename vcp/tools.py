@@ -38,7 +38,7 @@ class ColoredFormatter(logging.Formatter):
 
 def confirm_prompt(msg = "Are you sure?", help = "(ok: enter, cancel: ctrl+c)"):
     try:
-        raw_input("{} {} ".format(msg, help))
+        input("{} {} ".format(msg, help))
         return True
     except KeyboardInterrupt:
         # for new line
@@ -46,8 +46,8 @@ def confirm_prompt(msg = "Are you sure?", help = "(ok: enter, cancel: ctrl+c)"):
         return False
 
 def get_func_defaults(func):
-    diff = len(func.func_code.co_varnames) - len(func.func_defaults)
-    return {func.func_code.co_varnames[diff+idx]: val for idx, val in enumerate(func.func_defaults)}
+    diff = len(func.__code__.co_varnames) - len(func.__defaults__)
+    return {func.__code__.co_varnames[diff+idx]: val for idx, val in enumerate(func.__defaults__)}
 
 def confirm(msg = get_func_defaults(confirm_prompt)['msg'], help = get_func_defaults(confirm_prompt)['help']):
 
@@ -67,7 +67,7 @@ def yaml_add_object_hook_pairs(type_):
     _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
     def dict_representer(dumper, data):
-        return dumper.represent_dict(data.iteritems())
+        return dumper.represent_dict(iter(data.items()))
 
     def dict_constructor(loader, node):
         return type_(loader.construct_pairs(node))

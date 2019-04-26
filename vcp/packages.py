@@ -21,7 +21,7 @@ class PackageFactory(object):
         return self.types[name]()
 
     def create_all(self):
-        for cls in self.types.values():
+        for cls in list(self.types.values()):
             yield cls()
 
 def register(name):
@@ -30,9 +30,7 @@ def register(name):
         return cls
     return decor
 
-class PackageBase(object):
-
-    __metaclass__ = ABCMeta
+class PackageBase(object, metaclass=ABCMeta):
 
     @abstractmethod
     def init(self, path):
@@ -96,7 +94,7 @@ class PythonPackage(PackageBase):
                     msg = "{}: ".format(desc['label'])
                     if desc['default'] is not None:
                         msg += "({}) ".format(desc['default'])
-                    value = raw_input(msg)
+                    value = input(msg)
                     if len(value) == 0 and desc['default'] is not None:
                         value = desc['default']
 

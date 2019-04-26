@@ -31,7 +31,7 @@ def post_process(func):
         if not project_handler:
             return res
         kwargs['command_result'] = res
-        getattr(project_handler, func.func_name)(**kwargs)
+        getattr(project_handler, func.__name__)(**kwargs)
         return res
 
     return wrapper
@@ -82,7 +82,7 @@ class ProjectCommand(object):
         project.init(path, status, force, init_languages = init_languages)
 
         failed = []
-        for name, val in status.items():
+        for name, val in list(status.items()):
             if val is False and name not in failed:
                 failed.append(name)
 
@@ -90,10 +90,10 @@ class ProjectCommand(object):
 
     def __search_sub_path_in_repos(self, path):
         search = os.path.realpath(path) + os.sep
-        for name, repo in self.vcp.repositories.items():
+        for name, repo in list(self.vcp.repositories.items()):
             repo_path = os.path.realpath(repo.path) + os.sep
             if search.startswith(repo_path):
-                print repo_path, search
+                print(repo_path, search)
                 return repo
         return None
 
@@ -132,7 +132,7 @@ class ProjectCommand(object):
                 return False
 
             unknown_deps = []
-            for name, ref in data['dependencies'].items():
+            for name, ref in list(data['dependencies'].items()):
                 if name not in self.vcp.projects:
                     unknown_deps.append(name)
 
@@ -224,7 +224,7 @@ class ProjectCommand(object):
         table = PrettyTable(["Name", "Description", "Deps", "Languages", "Initialized"])
         table.align = 'l'
         table.align["Deps"] = "r"
-        projects = self.vcp.projects.values()
+        projects = list(self.vcp.projects.values())
         for project in sorted(projects, key = lambda p: p.name):
             table.add_row([
                 project.name,
@@ -250,7 +250,7 @@ class ProjectCommand(object):
     @confirm()
     @confirm('Really?')
     def purge_all(self, iamsure):
-        for name, project in self.vcp.projects.items():
+        for name, project in list(self.vcp.projects.items()):
             project.purge()
 
         self.vcp.save_config()
@@ -287,7 +287,7 @@ class RepositoryCommand(object):
         logger.info(self.vcp.repositories[name].cmd(command))
 
     def show_path(self, name):
-        print(self.vcp.repositories[name].path)
+        print((self.vcp.repositories[name].path))
 
     def list(self, format):
         # TODO: refactor this output format to sg generic, which appliable to the whole vcp
@@ -300,7 +300,7 @@ class RepositoryCommand(object):
             logger.info("Known repositories:\n{}".format(table))
         else:
             # logger prints color codes, but this format use for bash tab completion
-            print('\n'.join(sorted(self.vcp.repositories.keys())))
+            print(('\n'.join(sorted(self.vcp.repositories.keys()))))
 
     def remove(self, name):
         del self.vcp.repositories[name]

@@ -32,9 +32,7 @@ def num_bytes_readable(fd):
         raise Exception("We really should have had data")
     return buf[0]
 
-class Repository(object):
-    __metaclass__ = ABCMeta
-
+class Repository(object, metaclass=ABCMeta):
     def __init__(self, path, name):
         self.path = path
         self.name = name
@@ -61,7 +59,7 @@ class Repository(object):
         stdout, _ = p.communicate()
         if p.returncode != 0 and raise_on_error:
             raise RepositoryCommandException(p.returncode, command, stdout)
-        return stdout
+        return stdout.decode()
 
     @abstractmethod
     def set_ref(self, ref):

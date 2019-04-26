@@ -1,5 +1,5 @@
 
-from colors import Colors
+from .colors import Colors
 
 from voidpp_tools.terminal import get_size
 
