@@ -27,7 +27,8 @@ class GitRepository(Repository):
     def pushables(self, remote):
         if remote is None:
             remote = self.__get_current_full_branch_name()
-        return self.list_cmd("git --no-pager log --oneline %s..HEAD" % remote)
+        tag_cmd = "git show-ref --tags | grep -v -F \"$(git ls-remote --tags %s| grep -v '\\^{}' | cut -f 2)\"" % self.__get_current_remote()
+        return self.list_cmd("git --no-pager log --oneline %s..HEAD" % remote) + [t.split('/')[-1:][0] for t in self.list_cmd(tag_cmd)]
 
     def get_commits_from_last_tag(self):
         tag = self.cmd("git describe --abbrev=0 --tags").strip()
@@ -47,7 +48,9 @@ class GitRepository(Repository):
         return self.cmd("git status")
 
     def reset(self):
-        return self.cmd("git reset --hard ".format(self.__get_current_full_branch_name()))
+        return self.cmd("git reset --hard %s" % self.__get_current_full_branch_name()) + '\n' + \
+               self.cmd("git tag -l | xargs git tag -d") + '\n' + \
+               self.cmd("git fetch -t")
 
     def get_own_commits_since(self, since_str):
         user = self.cmd("git config --get user.name").strip()
